@@ -1,0 +1,5 @@
+[hooks]
+pre-push = "cargo make check"
+
+[logging]
+verbose = true

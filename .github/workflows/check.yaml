@@ -1,0 +1,55 @@
+permissions:
+  contents: read
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+name: check
+jobs:
+  fmt:
+    runs-on: ubuntu-22.04
+    name: fmt
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup repo
+        uses: ./.github/actions/setup-repo
+
+      - name: cargo make fmt-check
+        run: cargo make fmt-check
+  clippy:
+    runs-on: ubuntu-22.04
+    name: clippy
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup repo
+        uses: ./.github/actions/setup-repo
+
+      - name: cargo make clippy-check
+        run: cargo make clippy-check
+  hack:
+    runs-on: ubuntu-22.04
+    name: cargo-hack
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup repo
+        uses: ./.github/actions/setup-repo
+
+      - name: cargo hack
+        run: cargo make hack-check
