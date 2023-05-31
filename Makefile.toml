@@ -22,6 +22,18 @@ dependencies = [
     "deny",
 ]
 
+[tasks.watch]
+workspace = false
+install_crate = "cargo-leptos"
+command = "cargo"
+args = ["leptos", "watch", "-p", "trading-view"]
+
+[tasks.build]
+workspace = false
+install_crate = "cargo-leptos"
+command = "cargo"
+args = ["leptos", "build", "-p", "trading-view", "--release"]
+
 [tasks.format]
 workspace = false
 command = "cargo"
