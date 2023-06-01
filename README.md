@@ -16,6 +16,7 @@
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # Install cargo-make
 cargo install cargo-make
+cargo install --git https://github.com/leptos-rs/cargo-leptos --locked cargo-leptos
 # Setup the dependencies
 cargo make setup
 ```
