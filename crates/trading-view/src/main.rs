@@ -4,9 +4,9 @@ async fn main() {
     use axum::{extract::Extension, routing::post, Router};
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
+    use std::sync::Arc;
     use trading_view::app::*;
     use trading_view::fileserv::file_and_error_handler;
-    use std::sync::Arc;
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 

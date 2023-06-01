@@ -46,6 +46,12 @@ install_crate = "clippy"
 command = "cargo"
 args = ["clippy", "--fix", "--allow-dirty", "--allow-staged", "--workspace"]
 
+[tasks.format-leptos]
+workspace = false
+install_crate = "leptosfmt"
+command = "leptosmft"
+args = ["."]
+
 [tasks.unused-deps]
 workspace = false
 install_crate = "cargo-udeps"

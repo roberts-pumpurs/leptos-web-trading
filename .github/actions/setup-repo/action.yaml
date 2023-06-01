@@ -2,9 +2,13 @@ name: 'Setup Repo Action'
 description: 'A reusable composite action that setups rust and other common tasks'
 inputs:
   toolchain:
-    description: 'An example input parameter'
+    description: 'Nightly parameter for rust-toolchain'
     required: false
-    default: 'nightly-2023-05-02'
+    default: 'nightly-2023-05-31'
+  targets:
+    description: 'Target parameter for rust-toolchain'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -13,6 +17,7 @@ runs:
       uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ inputs.toolchain }}
+        targets: ${{ inputs.targets }}
         components: "rustfmt,clippy,cargo,llvm-tools-preview"
     - uses: Swatinem/rust-cache@v2
       with:

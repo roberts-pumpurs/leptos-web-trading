@@ -23,6 +23,12 @@ cargo make setup
 ## Development commands
 
 ```bash
+# Run the frontend
+cargo make watch
+
+# Build the server
+cargo make build
+
 # Test the code
 cargo make test
 
