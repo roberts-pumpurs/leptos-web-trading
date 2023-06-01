@@ -1,5 +1,5 @@
 # Using a very tiny image from google to run the app!
-FROM gcr.io/distroless/cc-debian11 AS runner
+FROM debian:bookworm-slim AS runner
 
 # copy app from builder
 WORKDIR /app
