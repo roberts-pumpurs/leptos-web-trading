@@ -14,7 +14,7 @@
 - Install [pnpm](https://pnpm.io/installation)
 
 ```bash
-# Install cargo-make
+pnpm install
 cargo install cargo-make
 cargo install --locked cargo-leptos
 ```

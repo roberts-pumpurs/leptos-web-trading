@@ -29,11 +29,18 @@ script = '''
 pnpm tailwindcss -i ./style/input.css -o ./style/output.css --watch
 '''
 
+[tasks.tailwind-build]
+workspace = false
+script = '''
+pnpm tailwindcss -i ./style/input.css -o ./style/output.css
+'''
+
 [tasks.build]
 workspace = false
 install_crate = "cargo-leptos"
 command = "cargo"
 args = ["leptos", "build", "-p", "frontend", "--release"]
+dependencies = ["tailwind-build"]
 
 [tasks.fmt]
 workspace = false
