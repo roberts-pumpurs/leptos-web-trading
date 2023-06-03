@@ -28,9 +28,6 @@ jobs:
       - name: cargo build
         run: cargo make build
 
-      - name: ls ./target
-        run: ls ./target/server/release
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 

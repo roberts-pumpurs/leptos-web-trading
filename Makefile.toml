@@ -42,6 +42,13 @@ command = "cargo"
 args = ["leptos", "build", "-p", "frontend", "--release"]
 dependencies = ["tailwind-build"]
 
+[tasks.run-prod]
+workspace = false
+dependencies = ["build"]
+script = '''
+LEPTOS_OUTPUT_NAME=frontend ./target/server/release/server
+'''
+
 [tasks.fmt]
 workspace = false
 command = "cargo"
