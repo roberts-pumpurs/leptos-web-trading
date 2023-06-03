@@ -1,7 +1,7 @@
 use leptos::*;
 
 #[component]
-pub fn Header(cx: Scope) -> impl IntoView {
+pub fn Navbar(cx: Scope) -> impl IntoView {
     view! { cx,
         <header class="absolute inset-x-0 top-0 z-50">
             <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">

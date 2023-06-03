@@ -4,8 +4,12 @@ use leptos_router::*;
 
 mod components;
 pub mod error_template;
+mod layout;
+mod pages;
 
-use components::{Footer, Header, Home};
+use components::Home;
+
+use crate::layout::Base;
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -13,23 +17,17 @@ pub fn App(cx: Scope) -> impl IntoView {
     provide_meta_context(cx);
 
     view! { cx,
-        <Stylesheet id="leptos" href="/pkg/frontend.css"/>
-        <Title text="Live Trading Example"/>
-        <Router>
-            <Header/>
-            <div class="bg-white">
-                <main>
-                    <Routes>
-                        <Route
-                            path=""
-                            view=|cx| {
-                                view! { cx, <Home/> }
-                            }
-                        />
-                    </Routes>
-                </main>
-            </div>
-            <Footer/>
-        </Router>
+        <Base>
+            <Router>
+                <Routes>
+                    <Route
+                        path=""
+                        view=|cx| {
+                            view! { cx, <Home/> }
+                        }
+                    />
+                </Routes>
+            </Router>
+        </Base>
     }
 }

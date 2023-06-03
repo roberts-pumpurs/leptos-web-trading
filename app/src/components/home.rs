@@ -1,8 +1,10 @@
 use leptos::*;
+use leptos_meta::*;
 
 #[component]
 pub fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
+        <Title text="Leptos live trading demo"/>
         <main>
             <div class="relative isolate pt-14">
                 <svg

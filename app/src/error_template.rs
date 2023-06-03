@@ -1,3 +1,4 @@
+use crate::pages::Error;
 use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
@@ -43,7 +44,7 @@ pub fn ErrorTemplate(
         .into_iter()
         .filter_map(|(_k, v)| v.downcast_ref::<AppError>().cloned())
         .collect();
-    println!("Errors: {errors:#?}");
+    tracing::warn!("Errors: {errors:#?}");
 
     // Only the response code for the first error is actually sent from the server
     // this may be customized by the specific application
@@ -54,19 +55,5 @@ pub fn ErrorTemplate(
         }
     }}
 
-    view! { cx,
-        <h1>{if errors.len() > 1 { "Errors" } else { "Error" }}</h1>
-        <For
-            each=move || { errors.clone().into_iter().enumerate() }
-            key=|(index, _error)| *index
-            view=move |cx, error| {
-                let error_string = error.1.to_string();
-                let error_code = error.1.status_code();
-                view! { cx,
-                    <h2>{error_code.to_string()}</h2>
-                    <p>"Error: " {error_string}</p>
-                }
-            }
-        />
-    }
+    view! { cx, <Error errors=errors/> }
 }
