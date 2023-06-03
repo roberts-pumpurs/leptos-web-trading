@@ -22,28 +22,35 @@ install_crate = "cargo-leptos"
 command = "cargo"
 args = ["leptos", "watch", "-p", "frontend"]
 
+
+[tasks.tailwind-watch]
+workspace = false
+script = '''
+pnpm tailwindcss -i ./style/input.css -o ./style/output.css --watch
+'''
+
 [tasks.build]
 workspace = false
 install_crate = "cargo-leptos"
 command = "cargo"
 args = ["leptos", "build", "-p", "frontend", "--release"]
 
-[tasks.format]
+[tasks.fmt]
 workspace = false
 command = "cargo"
 args = ["fmt", "--all", "--", "--emit=files"]
-dependencies = ["format-clippy"]
+dependencies = ["fmt-clippy", "fmt-leptos"]
 
-[tasks.format-clippy]
+[tasks.fmt-clippy]
 workspace = false
 install_crate = "clippy"
 command = "cargo"
 args = ["clippy", "--fix", "--allow-dirty", "--allow-staged", "--workspace"]
 
-[tasks.format-leptos]
+[tasks.fmt-leptos]
 workspace = false
 install_crate = "leptosfmt"
-command = "leptosmft"
+command = "leptosfmt"
 args = ["."]
 
 [tasks.unused-deps]

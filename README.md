@@ -10,9 +10,10 @@
 
 ## Development setup
 
+- Install [rust](https://rustup.rs/)
+- Install [pnpm](https://pnpm.io/installation)
+
 ```bash
-# Install rustup
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # Install cargo-make
 cargo install cargo-make
 cargo install --locked cargo-leptos
@@ -21,10 +22,13 @@ cargo install --locked cargo-leptos
 ## Development commands
 
 ```bash
-# Run the frontend
+# Run this in the background
+cargo make tailwind-watch
+
+# Run the dev mode server
 cargo make watch
 
-# Build the server
+# Build the prod server
 cargo make build
 
 # Test the code
