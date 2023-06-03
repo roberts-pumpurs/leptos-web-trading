@@ -5,12 +5,6 @@ skip_core_tasks = true
 [env]
 CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 
-[tasks.setup]
-workspace = false
-install_crate = "rusty-hook"
-command = "rusty-hook"
-args = ["init"]
-
 [tasks.local-ci]
 workspace = false
 dependencies = [
@@ -26,13 +20,13 @@ dependencies = [
 workspace = false
 install_crate = "cargo-leptos"
 command = "cargo"
-args = ["leptos", "watch", "-p", "trading-view"]
+args = ["leptos", "watch", "-p", "frontend"]
 
 [tasks.build]
 workspace = false
 install_crate = "cargo-leptos"
 command = "cargo"
-args = ["leptos", "build", "-p", "trading-view", "--release"]
+args = ["leptos", "build", "-p", "frontend", "--release"]
 
 [tasks.format]
 workspace = false

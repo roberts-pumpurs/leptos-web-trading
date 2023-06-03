@@ -8,7 +8,6 @@
 [![deny](https://github.com/roberts-ivanovs/leptos-web-trading/actions/workflows/deny.yaml/badge.svg)](https://github.com/roberts-ivanovs/leptos-web-trading/actions/workflows/deny.yaml)
 [![audit](https://github.com/roberts-ivanovs/leptos-web-trading/actions/workflows/audit.yaml/badge.svg)](https://github.com/roberts-ivanovs/leptos-web-trading/actions/workflows/audit.yaml)
 
-
 ## Development setup
 
 ```bash
@@ -16,9 +15,7 @@
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # Install cargo-make
 cargo install cargo-make
-cargo install --git https://github.com/leptos-rs/cargo-leptos --locked cargo-leptos
-# Setup the dependencies
-cargo make setup
+cargo install --locked cargo-leptos
 ```
 
 ## Development commands
