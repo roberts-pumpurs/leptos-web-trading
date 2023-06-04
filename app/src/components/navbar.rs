@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_router::A;
 
 #[component]
 pub fn Navbar(cx: Scope) -> impl IntoView {
@@ -6,14 +7,14 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
         <header class="inset-x-0 top-0 z-50">
             <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
                 <div class="flex lg:flex-1">
-                    <a href="/" class="-m-1.5 p-1.5">
+                    <A href="/" class="-m-1.5 p-1.5">
                         <span class="sr-only">"Your Company"</span>
                         <img
                             class="h-8 w-auto"
                             src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
                             alt=""
                         />
-                    </a>
+                    </A>
                 </div>
                 <div class="flex lg:hidden">
                     <button
@@ -38,29 +39,29 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </button>
                 </div>
                 <div class="hidden lg:flex lg:gap-x-12">
-                    <a href="/" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/" class="text-sm font-semibold leading-6 text-gray-900">
                         "Home"
-                    </a>
-                    <a href="/market" class="text-sm font-semibold leading-6 text-gray-900">
+                    </A>
+                    <A href="/market" class="text-sm font-semibold leading-6 text-gray-900">
                         "Markets"
-                    </a>
-                    <a href="/community" class="text-sm font-semibold leading-6 text-gray-900">
+                    </A>
+                    <A href="/community" class="text-sm font-semibold leading-6 text-gray-900">
                         "Community"
-                    </a>
+                    </A>
                 </div>
             </nav>
             <div class="lg:hidden" role="dialog" aria-modal="true">
                 <div class="fixed inset-0 z-50"></div>
                 <div class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
                     <div class="flex items-center justify-between">
-                        <a href="#" class="-m-1.5 p-1.5">
+                        <A href="#" class="-m-1.5 p-1.5">
                             <span class="sr-only">"Your Company"</span>
                             <img
                                 class="h-8 w-auto"
                                 src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
                                 alt=""
                             />
-                        </a>
+                        </A>
                         <button type="button" class="-m-2.5 rounded-md p-2.5 text-gray-700">
                             <span class="sr-only">"Close menu"</span>
                             <svg
@@ -82,24 +83,24 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     <div class="mt-6 flow-root">
                         <div class="-my-6 divide-y divide-gray-500/10">
                             <div class="space-y-2 py-6">
-                                <a
+                                <A
                                     href="/"
                                     class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Home"
-                                </a>
-                                <a
+                                </A>
+                                <A
                                     href="/market"
                                     class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Markets"
-                                </a>
-                                <a
+                                </A>
+                                <A
                                     href="/community"
                                     class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Community"
-                                </a>
+                                </A>
                             </div>
                         </div>
                     </div>

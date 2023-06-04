@@ -21,11 +21,11 @@ pub async fn file_and_error_handler(
     if res.status() == StatusCode::OK {
         res.into_response()
     } else {
-        let mut errors = Errors::default();
-        errors.insert_with_default_key(AppError::NotFound);
+        let mut outside_errors = Errors::default();
+        outside_errors.insert_with_default_key(AppError::NotFound);
         let handler = leptos_axum::render_app_to_stream(
             options.to_owned(),
-            move |cx| view! { cx, <ErrorTemplate outside_errors=errors.clone()/> },
+            move |cx| view! { cx, <ErrorTemplate outside_errors=outside_errors.clone()/> },
         );
         handler(req).await.into_response()
     }

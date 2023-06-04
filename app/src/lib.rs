@@ -1,17 +1,16 @@
 use leptos::*;
 use leptos_meta::*;
-use leptos_router::*;
 
+mod app_router;
 mod components;
 pub mod error_template;
 mod layout;
 mod pages;
 
 #[cfg(feature = "ssr")]
-pub use pages::register_server_functions;
-use pages::{CommunityPage, HomePage, MarketPage,};
+pub use components::register_server_functions;
 
-use crate::pages::LadderView;
+use crate::app_router::AppRouter;
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -19,39 +18,9 @@ pub fn App(cx: Scope) -> impl IntoView {
     provide_meta_context(cx);
 
     view! { cx,
-        <Router>
-            <Routes>
-                <Route
-                    path="/"
-                    view=|cx| {
-                        view! { cx, <HomePage/> }
-                    }
-                />
-                <Route
-                    path="/market"
-                    view=|cx| {
-                        view! { cx, <MarketPage/> }
-                    }
-                    >
-                        <Route
-                            path=":id"
-                            view=|cx| {
-                                view! { cx, <LadderView /> }
-                            }
-                        />
-                        <Route path="" view=|cx| view! { cx,
-                            <div>
-                                "Select a market to start trading!"
-                            </div>
-                        }/>
-                </Route>
-                <Route
-                    path="/community"
-                    view=|cx| {
-                        view! { cx, <CommunityPage/> }
-                    }
-                />
-            </Routes>
-        </Router>
+        <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
+        <Stylesheet id="leptos" href="/pkg/frontend.css"/>
+        <Meta name="description" content="Webapp demo with Leptos in Rust"/>
+        <AppRouter/>
     }
 }

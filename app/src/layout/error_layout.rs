@@ -1,8 +1,6 @@
 use leptos::*;
 use leptos_meta::*;
 
-use crate::components::Navbar;
-
 #[component]
 pub fn ErrorLayout(cx: Scope, children: Children) -> impl IntoView {
     provide_meta_context(cx);
@@ -11,7 +9,6 @@ pub fn ErrorLayout(cx: Scope, children: Children) -> impl IntoView {
         <Html class="h-full"/>
         <Body class="h-full"/>
         <Stylesheet id="leptos" href="/pkg/frontend.css"/>
-        <Navbar/>
         {children(cx)}
     }
 }

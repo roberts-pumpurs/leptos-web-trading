@@ -51,9 +51,12 @@ pub fn ErrorPage(cx: Scope, errors: Vec<AppError>) -> impl IntoView {
                         }
                     />
                     <div class="mt-10 flex justify-center">
-                        <a href="#" class="text-sm font-semibold leading-7 text-white">
-                            <span aria-hidden="true">"&larr;"</span>
-                            " Back to home"
+                        <a
+                            href="/"
+                            target="_blank"
+                            class="text-sm font-semibold leading-7 text-white"
+                        >
+                            "Back to home"
                         </a>
                     </div>
                 </div>

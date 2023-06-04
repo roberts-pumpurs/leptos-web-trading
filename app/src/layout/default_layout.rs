@@ -1,7 +1,8 @@
 use leptos::*;
 use leptos_meta::*;
 
-use crate::components::{Footer, Navbar};
+use crate::components::footer::Footer;
+use crate::components::navbar::Navbar;
 
 #[component]
 pub fn DefaultLayout(cx: Scope, children: Children) -> impl IntoView {
