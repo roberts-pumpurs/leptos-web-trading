@@ -1,5 +1,4 @@
 use leptos::*;
-
 use leptos_meta::*;
 
 use crate::layout::DefaultLayout;

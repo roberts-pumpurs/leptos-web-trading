@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use leptos::*;
+use leptos_router::A;
 use serde::{Deserialize, Serialize};
 
 use crate::error_template::ErrorTemplate;
@@ -35,7 +36,7 @@ pub async fn get_markets(cx: Scope) -> Result<Vec<Market>, ServerFnError> {
         },
         Market {
             id: 3,
-            name: "Vitality vs Astralis".to_string(),
+            name: "Liquid vs Astralis".to_string(),
             event: "BLAST.TV Major".to_string(),
             liquidity: 10000,
             users: 14,
@@ -91,18 +92,18 @@ pub fn MarketList(cx: Scope) -> impl IntoView {
                                                                 />
                                                                 <div class="min-w-0 flex-auto">
                                                                     <p class="text-sm font-semibold leading-6 text-gray-900">
-                                                                        <a href="#">
+                                                                        <A href={market.id.to_string()}>
                                                                             <span class="absolute inset-x-0 -top-px bottom-0"></span>
                                                                             {market.name}
-                                                                        </a>
+                                                                        </A>
                                                                     </p>
                                                                     <p class="mt-1 flex text-xs leading-5 text-gray-500">
-                                                                        <a
-                                                                            href="mailto:leslie.alexander@example.com"
+                                                                        <A
+                                                                            href={market.id.to_string()}
                                                                             class="relative truncate hover:underline"
                                                                         >
                                                                             {market.event}
-                                                                        </a>
+                                                                        </A>
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -115,6 +116,8 @@ pub fn MarketList(cx: Scope) -> impl IntoView {
                                                                         "Active users " {market.users}
                                                                     </p>
                                                                 </div>
+                                                                <A href={market.id.to_string()}>
+
                                                                 <svg
                                                                     class="h-5 w-5 flex-none text-gray-400"
                                                                     viewBox="0 0 20 20"
@@ -127,6 +130,7 @@ pub fn MarketList(cx: Scope) -> impl IntoView {
                                                                         clip-rule="evenodd"
                                                                     ></path>
                                                                 </svg>
+                                                                </A>
                                                             </div>
                                                         </li>
                                                     }

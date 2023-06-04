@@ -1,14 +1,11 @@
-use app::error_template::AppError;
-use app::error_template::ErrorTemplate;
-use axum::response::Response as AxumResponse;
-use axum::{
-    body::{boxed, Body, BoxBody},
-    extract::Extension,
-    http::{Request, Response, StatusCode, Uri},
-    response::IntoResponse,
-};
-use leptos::*;
 use std::sync::Arc;
+
+use app::error_template::{AppError, ErrorTemplate};
+use axum::body::{boxed, Body, BoxBody};
+use axum::extract::Extension;
+use axum::http::{Request, Response, StatusCode, Uri};
+use axum::response::{IntoResponse, Response as AxumResponse};
+use leptos::*;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
@@ -35,17 +32,13 @@ pub async fn file_and_error_handler(
 }
 
 async fn get_static_file(uri: Uri, root: &str) -> Result<Response<BoxBody>, (StatusCode, String)> {
-    let req = Request::builder()
-        .uri(uri.clone())
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri(uri.clone()).body(Body::empty()).unwrap();
     // `ServeDir` implements `tower::Service` so we can call it with `tower::ServiceExt::oneshot`
     // This path is relative to the cargo root
     match ServeDir::new(root).oneshot(req).await {
         Ok(res) => Ok(res.map(boxed)),
-        Err(err) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {err}"),
-        )),
+        Err(err) => {
+            Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Something went wrong: {err}")))
+        }
     }
 }

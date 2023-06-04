@@ -1,10 +1,9 @@
 use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
-use thiserror::Error;
-
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
+use thiserror::Error;
 
 use crate::pages::ErrorPage;
 
@@ -41,10 +40,8 @@ pub fn ErrorTemplate(
     let errors = errors.get();
 
     // Downcast lets us take a type that implements `std::error::Error`
-    let errors: Vec<AppError> = errors
-        .into_iter()
-        .filter_map(|(_k, v)| v.downcast_ref::<AppError>().cloned())
-        .collect();
+    let errors: Vec<AppError> =
+        errors.into_iter().filter_map(|(_k, v)| v.downcast_ref::<AppError>().cloned()).collect();
 
     // Only the response code for the first error is actually sent from the server
     // this may be customized by the specific application

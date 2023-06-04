@@ -1,9 +1,9 @@
 use http::StatusCode;
 use leptos::*;
-
 use leptos_meta::*;
 
-use crate::{error_template::AppError, layout::ErrorLayout};
+use crate::error_template::AppError;
+use crate::layout::ErrorLayout;
 
 #[component]
 pub fn ErrorPage(cx: Scope, errors: Vec<AppError>) -> impl IntoView {

@@ -7,10 +7,11 @@ pub mod error_template;
 mod layout;
 mod pages;
 
-use pages::{CommunityPage, HomePage, MarketPage};
-
 #[cfg(feature = "ssr")]
 pub use pages::register_server_functions;
+use pages::{CommunityPage, HomePage, MarketPage,};
+
+use crate::pages::LadderView;
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -31,7 +32,19 @@ pub fn App(cx: Scope) -> impl IntoView {
                     view=|cx| {
                         view! { cx, <MarketPage/> }
                     }
-                />
+                    >
+                        <Route
+                            path=":id"
+                            view=|cx| {
+                                view! { cx, <LadderView /> }
+                            }
+                        />
+                        <Route path="" view=|cx| view! { cx,
+                            <div>
+                                "Select a market to start trading!"
+                            </div>
+                        }/>
+                </Route>
                 <Route
                     path="/community"
                     view=|cx| {

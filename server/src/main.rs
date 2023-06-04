@@ -1,9 +1,13 @@
-use app::*;
-use axum::{extract::Extension, routing::{post, any}, Router};
-use fileserv::file_and_error_handler;
-use leptos::{*, leptos_server::server_fns_by_path};
-use leptos_axum::{generate_route_list, LeptosRoutes};
 use std::sync::Arc;
+
+use app::*;
+use axum::extract::Extension;
+use axum::routing::any;
+use axum::Router;
+use fileserv::file_and_error_handler;
+use leptos::leptos_server::server_fns_by_path;
+use leptos::*;
+use leptos_axum::{generate_route_list, LeptosRoutes};
 
 pub mod fileserv;
 
@@ -33,8 +37,5 @@ async fn main() {
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
     log!("listening on http://{}", &addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
 }
