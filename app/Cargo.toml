@@ -15,8 +15,10 @@ http.workspace = true
 cfg-if.workspace = true
 thiserror.workspace = true
 
+serde.workspace = true
+chrono.workspace = true
+
 [features]
 default = []
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
-

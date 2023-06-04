@@ -9,6 +9,9 @@ mod pages;
 
 use pages::{CommunityPage, HomePage, MarketPage};
 
+#[cfg(feature = "ssr")]
+pub use pages::register_server_functions;
+
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
