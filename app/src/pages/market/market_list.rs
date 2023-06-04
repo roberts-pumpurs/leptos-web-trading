@@ -14,7 +14,7 @@ pub struct Market {
     last_activity: DateTime<Utc>,
 }
 
-#[server(GetMarkets, "/api/market")]
+#[server(GetMarkets, "/api", "GetCbor")]
 pub async fn get_markets(cx: Scope) -> Result<Vec<Market>, ServerFnError> {
     Ok(vec![
         Market {
@@ -46,7 +46,7 @@ pub async fn get_markets(cx: Scope) -> Result<Vec<Market>, ServerFnError> {
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() {
-    _ = GetMarkets::register();
+    GetMarkets::register().unwrap();
 }
 
 #[component]

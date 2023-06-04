@@ -1,7 +1,7 @@
 use app::*;
-use axum::{extract::Extension, routing::post, Router};
+use axum::{extract::Extension, routing::{post, any}, Router};
 use fileserv::file_and_error_handler;
-use leptos::*;
+use leptos::{*, leptos_server::server_fns_by_path};
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use std::sync::Arc;
 
@@ -20,12 +20,12 @@ async fn main() {
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
-
     app::register_server_functions();
 
+    println!("{:?}", server_fns_by_path());
     // build our application with a route
     let app = Router::new()
-        .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
+        .route("/api/*fn_name", any(leptos_axum::handle_server_fns))
         .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
         .fallback(file_and_error_handler)
         .layer(Extension(Arc::new(leptos_options)));
