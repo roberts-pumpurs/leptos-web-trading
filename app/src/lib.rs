@@ -7,9 +7,7 @@ pub mod error_template;
 mod layout;
 mod pages;
 
-use components::Home;
-
-use crate::layout::Base;
+use pages::{MarketPage, CommunityPage, HomePage};
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -17,17 +15,27 @@ pub fn App(cx: Scope) -> impl IntoView {
     provide_meta_context(cx);
 
     view! { cx,
-        <Base>
-            <Router>
-                <Routes>
-                    <Route
-                        path=""
-                        view=|cx| {
-                            view! { cx, <Home/> }
-                        }
-                    />
-                </Routes>
-            </Router>
-        </Base>
+        <Router>
+            <Routes>
+                <Route
+                    path="/"
+                    view=|cx| {
+                        view! { cx, <HomePage/> }
+                    }
+                />
+                <Route
+                    path="/market"
+                    view=|cx| {
+                        view! { cx, <MarketPage/> }
+                    }
+                />
+                <Route
+                    path="/community"
+                    view=|cx| {
+                        view! { cx, <CommunityPage/> }
+                    }
+                />
+            </Routes>
+        </Router>
     }
 }

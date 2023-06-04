@@ -1,4 +1,3 @@
-use crate::pages::Error;
 use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
@@ -6,6 +5,8 @@ use thiserror::Error;
 
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
+
+use crate::pages::ErrorPage;
 
 #[derive(Clone, Debug, Error)]
 pub enum AppError {
@@ -55,5 +56,5 @@ pub fn ErrorTemplate(
         }
     }}
 
-    view! { cx, <Error errors=errors/> }
+    view! { cx, <ErrorPage errors=errors/> }
 }

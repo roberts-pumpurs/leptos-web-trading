@@ -1,12 +1,13 @@
 use leptos::*;
+use leptos_router::A;
 
 #[component]
 pub fn Navbar(cx: Scope) -> impl IntoView {
     view! { cx,
-        <header class="absolute inset-x-0 top-0 z-50">
+        <header class="inset-x-0 top-0 z-50">
             <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
                 <div class="flex lg:flex-1">
-                    <a href="#" class="-m-1.5 p-1.5">
+                    <a href="/" class="-m-1.5 p-1.5">
                         <span class="sr-only">"Your Company"</span>
                         <img
                             class="h-8 w-auto"
@@ -38,23 +39,14 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </button>
                 </div>
                 <div class="hidden lg:flex lg:gap-x-12">
-                    <a href="#" class="text-sm font-semibold leading-6 text-gray-900">
-                        "Product"
+                    <a href="/" class="text-sm font-semibold leading-6 text-gray-900">
+                        "Home"
                     </a>
-                    <a href="#" class="text-sm font-semibold leading-6 text-gray-900">
-                        "Features"
+                    <a href="/market" class="text-sm font-semibold leading-6 text-gray-900">
+                        "Markets"
                     </a>
-                    <a href="#" class="text-sm font-semibold leading-6 text-gray-900">
-                        "Marketplace"
-                    </a>
-                    <a href="#" class="text-sm font-semibold leading-6 text-gray-900">
-                        "Company"
-                    </a>
-                </div>
-                <div class="hidden lg:flex lg:flex-1 lg:justify-end">
-                    <a href="#" class="text-sm font-semibold leading-6 text-gray-900">
-                        "Log in "
-                        <span aria-hidden="true">"&rarr;"</span>
+                    <a href="/community" class="text-sm font-semibold leading-6 text-gray-900">
+                        "Community"
                     </a>
                 </div>
             </nav>
@@ -92,36 +84,22 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                         <div class="-my-6 divide-y divide-gray-500/10">
                             <div class="space-y-2 py-6">
                                 <a
-                                    href="#"
+                                    href="/"
                                     class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
-                                    "Product"
+                                    "Home"
                                 </a>
                                 <a
-                                    href="#"
+                                    href="/market"
                                     class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
-                                    "Features"
+                                    "Markets"
                                 </a>
                                 <a
-                                    href="#"
+                                    href="/community"
                                     class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
-                                    "Marketplace"
-                                </a>
-                                <a
-                                    href="#"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                                >
-                                    "Company"
-                                </a>
-                            </div>
-                            <div class="py-6">
-                                <a
-                                    href="#"
-                                    class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                                >
-                                    "Log in"
+                                    "Community"
                                 </a>
                             </div>
                         </div>
