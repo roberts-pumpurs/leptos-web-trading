@@ -1,5 +1,4 @@
 use leptos::*;
-use leptos_router::A;
 
 #[component]
 pub fn Navbar(cx: Scope) -> impl IntoView {

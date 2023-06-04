@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_meta::*;
 
-use crate::components::{Footer, Navbar};
+use crate::components::Navbar;
 
 #[component]
 pub fn ErrorLayout(cx: Scope, children: Children) -> impl IntoView {

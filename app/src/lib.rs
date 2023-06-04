@@ -7,7 +7,7 @@ pub mod error_template;
 mod layout;
 mod pages;
 
-use pages::{MarketPage, CommunityPage, HomePage};
+use pages::{CommunityPage, HomePage, MarketPage};
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
