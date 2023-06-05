@@ -93,6 +93,9 @@ version = "0.1.0"
 dependencies = [
  "cfg-if",
  "chrono",
+ "futures",
+ "gloo-net",
+ "gloo-timers",
  "http",
  "leptos",
  "leptos_axum",
@@ -826,6 +829,16 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "gloo-timers"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b995a66bb87bebce9a0f4a95aed01daca4872c050bfcb21653361c03bc35e5c"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]

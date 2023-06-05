@@ -1,13 +1,13 @@
-use std::{borrow::Cow, net::SocketAddr, ops::ControlFlow};
+use std::borrow::Cow;
+use std::ops::ControlFlow;
 
-use axum::extract::{ws::{CloseFrame, Message}, ConnectInfo};
-use axum::extract::{State, WebSocketUpgrade};
+use axum::extract::ws::{CloseFrame, Message};
+use axum::extract::WebSocketUpgrade;
 use axum::response::IntoResponse;
-use futures::{SinkExt, StreamExt, TryStreamExt};
+use futures::{SinkExt, StreamExt};
 
 pub async fn handler(
     ws: WebSocketUpgrade,
-    // ConnectInfo(who): ConnectInfo<SocketAddr>,
     // State(state): State<crate::app::WebAppState<T>>,
 ) -> impl IntoResponse {
     let who = "who";
