@@ -1,49 +1,63 @@
-use std::sync::{Arc, RwLock};
-
-use futures::stream::SplitSink;
-use futures::{SinkExt, StreamExt};
-use gloo_net::websocket::futures::WebSocket;
-use gloo_net::websocket::Message;
 use leptos::*;
 
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
-    let (chat_client, set_chat_client) =
-        create_signal::<Option<Arc<RwLock<SplitSink<WebSocket, Message>>>>>(cx, None);
     let (chat_messages, set_chat_messages) = create_signal::<Vec<String>>(cx, Vec::new());
 
-    create_effect(cx, move |_| {
-        tracing::info!("chat is connecting to server");
+    #[cfg(not(feature = "ssr"))]
+    let client = {
+        use std::sync::{Arc, RwLock};
+
+        use futures::stream::SplitSink;
+        use futures::{SinkExt, StreamExt};
+        use gloo_net::websocket::futures::WebSocket;
+        use gloo_net::websocket::Message;
+
         let connection =
             WebSocket::open("ws://127.0.0.1:3000/ws").expect("Failed to connect to WS stream");
         let (sender, mut recv) = connection.split();
+        let sender = Arc::new(RwLock::new(sender));
+        let sender_clone = sender.clone();
         spawn_local(async move {
             while let Some(msg) = recv.next().await {
                 match msg {
                     Ok(Message::Text(msg)) => {
                         set_chat_messages.update(|msgs| msgs.push(msg));
                     }
-                    _ => {
-                        break
-                    }
+                    _ => break,
                 }
             }
+            let sender = sender_clone.clone();
+            spawn_local(async move {
+                let mut sender = sender.write().unwrap();
+                let _ = sender.close().await;
+            });
         });
 
-        set_chat_client(Some(Arc::new(RwLock::new(sender))))
-    });
-
-    let send_msg_to_server = move |msg: String| {
-        set_chat_client.update(|client| {
-            if let Some(client) = client {
-                let client = client.clone();
+        let sender_clone = sender.clone();
+        on_cleanup(cx, move || {
                 spawn_local(async move {
-                    let mut client = client.write().unwrap();
-                    let _ = client.send(Message::Text(msg)).await;
+                    let mut client = sender_clone.write().unwrap();
+                    let _ = client.close().await;
                 });
-            }
+        });
+
+        sender
+    };
+
+    #[cfg(not(feature = "ssr"))]
+    let send_msg_to_server = move |msg: String| {
+        use futures::{SinkExt, StreamExt};
+        use gloo_net::websocket::Message;
+        let client = client.clone();
+        spawn_local(async move {
+            let mut client = client.write().unwrap();
+            let _ = client.send(Message::Text(msg)).await;
         });
     };
+
+    #[cfg(feature = "ssr")]
+    let send_msg_to_server = move |_| {};
 
     view! { cx,
         <div class="HomeView">
