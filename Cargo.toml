@@ -20,8 +20,9 @@ chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
 ] }
-axum = "0.6.11"
+axum = { version = "0.6", features = ["ws", "macros", "headers", "json"] }
 cfg-if = "1.0.0"
+futures = "0.3"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 http = "0.2.9"

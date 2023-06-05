@@ -14,5 +14,6 @@ axum.workspace = true
 simple_logger.workspace = true
 tokio.workspace = true
 tower.workspace = true
+futures.workspace = true
 tower-http.workspace = true
 log.workspace = true

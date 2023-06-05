@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use app::*;
-use axum::extract::Extension;
+use axum::{extract::Extension, routing::get};
 use axum::routing::any;
 use axum::Router;
 use fileserv::file_and_error_handler;
@@ -10,6 +10,7 @@ use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
 pub mod fileserv;
+mod ws;
 
 #[tokio::main]
 async fn main() {
@@ -29,6 +30,7 @@ async fn main() {
     println!("{:?}", server_fns_by_path());
     // build our application with a route
     let app = Router::new()
+        .route("/ws", get(ws::handler))
         .route("/api/*fn_name", any(leptos_axum::handle_server_fns))
         .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
         .fallback(file_and_error_handler)
