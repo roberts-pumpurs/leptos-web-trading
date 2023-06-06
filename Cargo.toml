@@ -1,5 +1,5 @@
 [workspace]
-members = ["app", "frontend", "server", "trading-core"]
+members = ["app", "frontend", "server", "trading/*"]
 
 # need to be applied only to wasm build
 [profile.release]
