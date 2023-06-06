@@ -1,4 +1,6 @@
-use crate::common::{LobbyId, TraderId, Order, RequestId};
+use serde::{Deserialize, Serialize};
+
+use crate::common::{LobbyId, Order, RequestId, TraderId};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum TraderMessage {

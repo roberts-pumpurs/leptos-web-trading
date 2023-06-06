@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::common::{LobbyId, Order, RequestId, TraderId, Size, Tick};
+use crate::common::{LobbyId, Order, RequestId, Size, Tick, TraderId};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum ServerMessage {
@@ -11,7 +11,6 @@ pub enum ServerMessage {
     OrderAccepted(RequestId),
     OrderRejected(RequestId, String),
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct TickData {

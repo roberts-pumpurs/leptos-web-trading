@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock};
 
-use futures::{stream::SplitSink, channel::oneshot, pin_mut};
+use futures::channel::oneshot;
+use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
@@ -31,7 +32,7 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
                 // The implication is that the Close frame never gets sent to the server.
                 if close_recv.try_recv().is_err() {
                     log!("chat is disconnecting from server");
-                    break;
+                    break
                 }
             }
         });
@@ -119,7 +120,7 @@ fn LadderTable(cx: Scope) -> impl IntoView {
                             <tbody class="text-center divide-y divide-gray-200 bg-white ">
                                 <tr class="divide-x divide-gray-200">
                                     <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
-                                        <input type="number" class="w-full" />
+                                        <input type="number" class="w-full"/>
                                     </td>
                                     <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
                                         "120e"
@@ -131,7 +132,7 @@ fn LadderTable(cx: Scope) -> impl IntoView {
                                         "120e"
                                     </td>
                                     <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
-                                        <input type="number" class="w-full" />
+                                        <input type="number" class="w-full"/>
                                     </td>
                                     <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
                                         "500e"
