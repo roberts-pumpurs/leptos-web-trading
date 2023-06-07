@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use actix::System;
 use app::*;
 use axum::extract::Extension;
 use axum::routing::{any, get};
@@ -11,11 +10,7 @@ use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use tracing_subscriber::prelude::*;
 
-use crate::state::WebAppState;
-
 pub mod fileserv;
-mod state;
-mod ws;
 
 #[tokio::main]
 async fn main() {
@@ -33,10 +28,10 @@ async fn main() {
     app::register_server_functions();
 
     println!("{:?}", server_fns_by_path());
-    let (state, handle) = spawn_actix_rt();
+    let (state, handle) = state::spawn_actix_rt();
     // build our application with a route
     let app = Router::new()
-        .route("/ws/:id", get(ws::handler))
+        .route("/ws/:id", get(live_connection::handler))
         .with_state(state)
         .route("/api/*fn_name", any(leptos_axum::handle_server_fns))
         .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
@@ -50,20 +45,6 @@ async fn main() {
     let server = axum::Server::bind(&addr).serve(app.into_make_service());
     let _ = server.await;
     handle.join().unwrap().unwrap();
-}
-
-fn spawn_actix_rt() -> (WebAppState, std::thread::JoinHandle<Result<(), std::io::Error>>) {
-    let (tx, rx) = std::sync::mpsc::sync_channel(1);
-    let handle = std::thread::spawn(move || {
-        let sys = System::new();
-
-        tx.send(System::current()).unwrap();
-
-        sys.run()
-    });
-
-    let sys = rx.recv().unwrap();
-    (WebAppState::new(sys.arbiter().clone()), handle)
 }
 
 fn init_tracing() {

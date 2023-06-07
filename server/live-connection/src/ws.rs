@@ -4,27 +4,14 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, Context, ContextFutureSpawner, StreamHandler,
     WrapFuture,
 };
-use axum::extract::ws::{self, CloseFrame, Message, WebSocket};
-use axum::extract::{Path, State, WebSocketUpgrade};
-use axum::response::IntoResponse;
+use axum::extract::ws::{self, WebSocket};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
+use state::webapp_state::WebAppState;
 use tokio::sync::Mutex;
 use trading_logic::market::MarketActor;
 
-use crate::state::WebAppState;
-
-pub async fn handler(
-    ws: WebSocketUpgrade,
-    Path(market_id): Path<String>,
-    State(state): State<WebAppState>,
-) -> impl IntoResponse {
-    let ws = ws.on_upgrade(move |ws| handle_connection(state, ws, market_id));
-    ws
-}
-
-
-async fn handle_connection(
+pub async fn handle_connection(
     state: WebAppState,
     websocket: axum::extract::ws::WebSocket,
     market_id: String,
@@ -69,12 +56,11 @@ impl WsActor {
 impl Actor for WsActor {
     type Context = Context<Self>;
 
-    fn started(&mut self, ctx: &mut Self::Context) {
-    }
+    fn started(&mut self, _ctx: &mut Self::Context) {}
 }
 
 impl StreamHandler<Result<WsMsg, axum::Error>> for WsActor {
-    fn handle(&mut self, item: Result<WsMsg, axum::Error>, ctx: &mut Context<WsActor>) {
+    fn handle(&mut self, _item: Result<WsMsg, axum::Error>, _ctx: &mut Context<WsActor>) {
         // TODO forward the message to either the market or respond back immediately
     }
 }

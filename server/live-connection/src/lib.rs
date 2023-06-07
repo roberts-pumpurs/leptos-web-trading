@@ -1,0 +1,13 @@
+use axum::extract::{Path, State, WebSocketUpgrade};
+use axum::response::IntoResponse;
+use state::webapp_state::WebAppState;
+
+mod ws;
+
+pub async fn handler(
+    ws: WebSocketUpgrade,
+    Path(market_id): Path<String>,
+    State(state): State<WebAppState>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |ws| ws::handle_connection(state, ws, market_id))
+}

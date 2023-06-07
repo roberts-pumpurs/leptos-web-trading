@@ -1,17 +1,12 @@
 [package]
-name = "server"
+name = "live-connection"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-app = { path = "../app", default-features = false, features = ["ssr"] }
-state = { path = "./state" }
-live-connection = { path = "./live-connection" }
-leptos = { workspace = true, features = ["ssr"] }
-leptos_axum.workspace = true
-
+state = { path = "../state" }
 axum.workspace = true
 simple_logger.workspace = true
 tokio.workspace = true
@@ -23,5 +18,5 @@ actix.workspace = true
 nanoid.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
-trading-types = { path = "../trading/trading-types" }
-trading-logic = { path = "../trading/trading-logic" }
+trading-types = { path = "../../trading/trading-types" }
+trading-logic = { path = "../../trading/trading-logic" }

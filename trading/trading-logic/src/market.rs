@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
-use actix::{Actor, Context, Message, Handler};
+use actix::{Actor, Context, Handler, Message};
 use trading_types::common::{Size, Tick, TraderId};
 
 pub mod messages {
     use actix::Recipient;
-    use trading_types::{common::Order, from_server::{TickData, MatchInfo}};
+    use trading_types::common::Order;
+    use trading_types::from_server::{MatchInfo, TickData};
 
     use super::*;
 
@@ -31,7 +32,6 @@ pub struct MarketActor {
     update_subscribers: HashSet<TraderId>,
 }
 
-
 impl Actor for MarketActor {
     type Context = Context<Self>;
 }
@@ -41,10 +41,8 @@ impl Handler<messages::PlaceOrder> for MarketActor {
 
     fn handle(&mut self, msg: messages::PlaceOrder, _ctx: &mut Context<Self>) -> Self::Result {
         tracing::info!(msg = ?msg, "Received order");
-        ()
     }
 }
-
 
 impl MarketActor {
     pub fn new() -> Self {
@@ -55,9 +53,6 @@ impl MarketActor {
         Self { order_book, update_subscribers: HashSet::new() }
     }
 }
-
-
-
 
 #[derive(Message)]
 #[rtype(result = "()")]

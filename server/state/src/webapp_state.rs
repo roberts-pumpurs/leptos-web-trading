@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use actix::{ArbiterHandle, Actor, Addr};
+use actix::*;
 use trading_logic::market::MarketActor;
 
 #[derive(Debug, Clone)]
@@ -12,7 +12,7 @@ pub struct WebAppState {
 impl WebAppState {
     pub fn new(arb: ArbiterHandle) -> Self {
         let mut markets = HashMap::new();
-        for market in vec!["1", "2", "3"] {
+        for market in &["1", "2", "3"] {
             let market_actor = Self::spawn_market(&arb);
             markets.insert(market.to_string(), market_actor);
         }
@@ -24,10 +24,7 @@ impl WebAppState {
     }
 
     fn spawn_market(arb: &ArbiterHandle) -> Addr<MarketActor> {
-        MarketActor::start_in_arbiter(arb, move |_ctx| {
-            let actor = MarketActor::new();
-            actor
-        })
+        MarketActor::start_in_arbiter(arb, move |_ctx| MarketActor::new())
     }
 
     pub fn markets(&self) -> &HashMap<String, Addr<MarketActor>> {

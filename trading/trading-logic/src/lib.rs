@@ -1,3 +1,3 @@
-pub mod market;
 mod bot;
+pub mod market;
 mod trader;
