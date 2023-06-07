@@ -4,7 +4,7 @@ use crate::common::{LobbyId, Order, RequestId, Size, Tick, TraderId};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum ServerMessage {
-    ConnectionInfo(LobbyId, TraderId, TraderInfo),
+    ConnectionInfo(LobbyId, TraderId, TraderInfo, Latency),
     MatchInfo(LobbyId, TraderInfo),
     TickSetWhole(Vec<TickData>),
     TickUpdate(TickData),
@@ -17,6 +17,11 @@ pub struct TickData {
     pub back: Size,
     pub lay: Size,
     pub tick: Tick,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+pub struct Latency {
+    pub ms: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]

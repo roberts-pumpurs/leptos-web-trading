@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use actix::System;
 use app::*;
 use axum::extract::Extension;
 use axum::routing::{any, get};
@@ -8,13 +9,17 @@ use fileserv::file_and_error_handler;
 use leptos::leptos_server::server_fns_by_path;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
+use tracing_subscriber::prelude::*;
+
+use crate::state::WebAppState;
 
 pub mod fileserv;
+mod state;
 mod ws;
 
 #[tokio::main]
 async fn main() {
-    simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
+    init_tracing();
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
@@ -28,9 +33,11 @@ async fn main() {
     app::register_server_functions();
 
     println!("{:?}", server_fns_by_path());
+    let (state, handle) = spawn_actix_rt();
     // build our application with a route
     let app = Router::new()
-        .route("/ws", get(ws::handler))
+        .route("/ws/:id", get(ws::handler))
+        .with_state(state)
         .route("/api/*fn_name", any(leptos_axum::handle_server_fns))
         .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
         .fallback(file_and_error_handler)
@@ -38,6 +45,39 @@ async fn main() {
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    log!("listening on http://{}", &addr);
-    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
+    tracing::info!("listening on http://{}", &addr);
+
+    let server = axum::Server::bind(&addr).serve(app.into_make_service());
+    let _ = server.await;
+    handle.join().unwrap().unwrap();
+}
+
+fn spawn_actix_rt() -> (WebAppState, std::thread::JoinHandle<Result<(), std::io::Error>>) {
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let handle = std::thread::spawn(move || {
+        let sys = System::new();
+
+        tx.send(System::current()).unwrap();
+
+        sys.run()
+    });
+
+    let sys = rx.recv().unwrap();
+    (WebAppState::new(sys.arbiter().clone()), handle)
+}
+
+fn init_tracing() {
+    // construct a subscriber that prints formatted traces to stdout
+    // use that subscriber to process traces emitted after this point
+    // TODO add openetelemtry support for tracing - https://tokio.rs/tokio/topics/tracing-next-steps
+    println!("---- SERVER {:} ----", env!("CARGO_PKG_VERSION"));
+    let env = tracing_subscriber::EnvFilter::new("DEBUG");
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .compact()
+        .with_file(true)
+        .with_line_number(true)
+        .with_thread_ids(false)
+        .with_target(false);
+    tracing_subscriber::registry().with(fmt_layer).with(env).init();
 }

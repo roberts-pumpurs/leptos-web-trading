@@ -6,48 +6,63 @@ use futures::{SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
 use leptos::*;
+use leptos_router::*;
 
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
+    let params = use_params_map(cx);
+    let id = move || params.with(|params| params.get("id").cloned().unwrap_or_else(|| "1".into()));
+
     let (_chat_client, set_chat_client) =
         create_signal::<Option<Arc<RwLock<SplitSink<WebSocket, Message>>>>>(cx, None);
     let (_chat_messages, set_chat_messages) = create_signal::<Vec<String>>(cx, Vec::new());
 
     create_effect(cx, move |_| {
         tracing::info!("chat is connecting to server");
-        let connection =
-            WebSocket::open("ws://127.0.0.1:3000/ws").expect("Failed to connect to WS stream");
-        let (sender, mut recv) = connection.split();
-        let (close_sender, mut close_recv) = oneshot::channel::<()>();
-        spawn_local(async move {
-            while let Some(msg) = recv.next().await {
-                match msg {
-                    Ok(Message::Text(msg)) => {
-                        set_chat_messages.update(|msgs| msgs.push(msg));
-                    }
-                    _ => break,
-                }
-                // NOTE: we cannot use futures::select! here because of some weird
-                // FutureFused trait bounds not being available for `recv`.
-                // The implication is that the Close frame never gets sent to the server.
-                if close_recv.try_recv().is_err() {
-                    log!("chat is disconnecting from server");
-                    break
-                }
+        let host = window().location().host().unwrap_or("127.0.0.1:3000".to_string());
+        let protocol = {
+            if window().location().protocol().unwrap_or("http".to_string()).ends_with("s") {
+                "wss"
+            } else {
+                "ws"
             }
-        });
-
-        let sender = Arc::new(RwLock::new(sender));
-
-        let sender_clone = sender.clone();
-        on_cleanup(cx, move || {
+        };
+        let url = format!("{}://{}/ws/{}", protocol, host, id());
+        if let Ok(connection) = WebSocket::open(&url) {
+            let (sender, mut recv) = connection.split();
+            let (close_sender, mut close_recv) = oneshot::channel::<()>();
             spawn_local(async move {
-                let mut client = sender_clone.write().unwrap();
-                client.close().await.unwrap();
-                let _ = close_sender.send(());
+                while let Some(msg) = recv.next().await {
+                    match msg {
+                        Ok(Message::Text(msg)) => {
+                            set_chat_messages.update(|msgs| msgs.push(msg));
+                        }
+                        _ => break,
+                    }
+                    // NOTE: we cannot use futures::select! here because of some weird
+                    // FutureFused trait bounds not being available for `recv`.
+                    // The implication is that the Close frame never gets sent to the server.
+                    if close_recv.try_recv().is_err() {
+                        log!("chat is disconnecting from server");
+                        break
+                    }
+                }
             });
-        });
-        set_chat_client(Some(sender))
+
+            let sender = Arc::new(RwLock::new(sender));
+
+            let sender_clone = sender.clone();
+            on_cleanup(cx, move || {
+                spawn_local(async move {
+                    let mut client = sender_clone.write().unwrap();
+                    client.close().await.unwrap();
+                    let _ = close_sender.send(());
+                });
+            });
+            set_chat_client(Some(sender))
+        } else {
+            log!("chat failed to connect to server");
+        }
     });
 
     let _send_msg_to_server = move |msg: String| {
