@@ -14,6 +14,7 @@ axum = { workspace = true, optional = true }
 state = { path = "../server/state", optional = true }
 trading-types = { path = "../trading/trading-types" }
 ciborium.workspace = true
+js-sys = { version = "0.3" }
 
 gloo-net.workspace = true
 gloo-timers.workspace = true

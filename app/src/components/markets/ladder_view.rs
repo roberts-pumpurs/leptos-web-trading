@@ -1,87 +1,121 @@
 use std::sync::{Arc, RwLock};
 
+use chrono::{DateTime, Utc};
 use futures::channel::oneshot;
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
+use gloo_timers;
 use leptos::*;
 use leptos_router::*;
 use trading_types::from_server::ServerMessage;
+use trading_types::from_trader::TraderMessage;
 
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
     let params = use_params_map(cx);
-    let id = move || params.with(|params| params.get("id").cloned().unwrap_or_else(|| "1".into()));
-
-    let (_chat_client, set_chat_client) =
-        create_signal::<Option<Arc<RwLock<SplitSink<WebSocket, Message>>>>>(cx, None);
-    let (_chat_messages, set_chat_messages) = create_signal::<Vec<String>>(cx, Vec::new());
-
+    let id = move || {
+        params.with(|params| {
+            params.get("id").cloned().map(|x| x.parse::<u32>().unwrap_or(1)).unwrap_or(1)
+        })
+    };
+    let derived_ws_url = create_memo::<String>(cx, move |_| derive_ws_url(id()));
     create_effect(cx, move |_| {
-        let host = window().location().host().unwrap_or("127.0.0.1:3000".to_string());
-        let protocol = {
-            if window().location().protocol().unwrap_or("http".to_string()).contains("https") {
-                "wss"
-            } else {
-                "ws"
-            }
-        };
-        let url = format!("{}://{}/ws/{}", protocol, host, id());
-        if let Ok(connection) = WebSocket::open(&url) {
-            let (sender, mut recv) = connection.split();
-            let (close_sender, mut close_recv) = oneshot::channel::<()>();
-            spawn_local(async move {
-                while let Some(msg) = recv.next().await {
-                    match msg {
-                        Ok(Message::Bytes(msg)) => {
-                            let value = ciborium::from_reader::<ServerMessage, _>(&msg[..]);
+        if let Ok(ws_client) = WebSocket::open(&derived_ws_url()) {
+            let (to_ws_sender, mut to_ws_recv) =
+                futures::channel::mpsc::channel::<TraderMessage>(100);
+            let (mut sender, mut recv) = ws_client.split();
+            let to_ws_sender = Arc::new(RwLock::new(to_ws_sender));
+            // Server -> Client
+            {
+                let to_ws_sender = to_ws_sender.clone();
+                spawn_local(async move {
+                    while let Some(Ok(msg)) = recv.next().await {
+                        match msg {
+                            Message::Bytes(msg) => {
+                                let Ok(value) = ciborium::from_reader::<ServerMessage, _>(&msg[..]) else {
+                                continue;
+                            };
+                                log!("received msg from server {:?}", value);
+                                match value {
+                                    ServerMessage::TraderTimeAck => {
+                                        let mut sender = to_ws_sender.write().unwrap();
+
+                                        let now = js_sys::Date::new_0();
+                                        let ms = now.get_time() as u64;
+                                        let msg = TraderMessage::TraderTimeAck { ms };
+                                        let _ = sender.send(msg).await;
+                                    }
+                                    ServerMessage::ConnectionInfo(_) => (),
+                                    ServerMessage::TickSetWhole(_) => (),
+                                    ServerMessage::TickUpdate(_) => (),
+                                    ServerMessage::OrderAccepted(_) => (),
+                                    ServerMessage::OrderRejected(_, _) => (),
+                                }
+                            }
+                            _ => (), // don't act on text msgs
                         }
-                        _ => break,
                     }
-                    // NOTE: we cannot use futures::select! here because of some weird
-                    // FutureFused trait bounds not being available for `recv`.
-                    // The implication is that the Close frame never gets sent to the server.
-                    if close_recv.try_recv().is_err() {
-                        log!("chat is disconnecting from server");
-                        break
+                });
+            }
+
+            // Client -> Server
+            spawn_local(async move {
+                while let Some(msg) = to_ws_recv.next().await {
+                    let mut writer = Vec::new();
+                    if let Ok(_) = ciborium::into_writer(&msg, &mut writer) {
+                        let msg = Message::Bytes(writer);
+                        if sender.send(msg).await.is_err() {
+                            // TODO reunite with the sender
+                        }
                     }
                 }
             });
 
-            let sender = Arc::new(RwLock::new(sender));
-
-            let sender_clone = sender.clone();
-            on_cleanup(cx, move || {
+            // Every 5 seconds, send a ping to the server
+            {
+                let to_ws_sender = to_ws_sender.clone();
                 spawn_local(async move {
-                    let mut client = sender_clone.write().unwrap();
-                    client.close().await.unwrap();
-                    let _ = close_sender.send(());
-                });
-            });
-            set_chat_client(Some(sender))
-        } else {
-            log!("chat failed to connect to server");
-        }
-    });
-
-    let _send_msg_to_server = move |msg: String| {
-        set_chat_client.update(|client| {
-            if let Some(client) = client {
-                let client = client.clone();
-                spawn_local(async move {
-                    let mut client = client.write().unwrap();
-                    let _ = client.send(Message::Text(msg)).await;
+                    use gloo_timers::callback::Interval;
+                    let _ = Interval::new(2_000, move || {
+                        let to_ws_sender = to_ws_sender.clone();
+                        spawn_local(async move {
+                            log!("sending ping to server");
+                            let mut sender = to_ws_sender.write().unwrap();
+                            let now = js_sys::Date::new_0();
+                            let ms = now.get_time() as u64;
+                            let msg = TraderMessage::TraderTime { ms };
+                            let _ = sender.send(msg).await;
+                        })
+                    })
+                    .forget();
                 });
             }
-        });
-    };
+
+            // TODO create cleanup that makes sure we destroy all websockets
+        } else {
+            warn!("failed to connect to websocket");
+        }
+    });
 
     view! { cx,
         <div class="HomeView">
             <LadderTable/>
         </div>
     }
+}
+
+fn derive_ws_url(id: u32) -> String {
+    let host = window().location().host().unwrap_or("127.0.0.1:3000".to_string());
+    let protocol = {
+        if window().location().protocol().unwrap_or("http".to_string()).contains("https") {
+            "wss"
+        } else {
+            "ws"
+        }
+    };
+    format!("{}://{}/ws/{}", protocol, host, id)
 }
 
 #[component]

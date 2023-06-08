@@ -144,6 +144,7 @@ dependencies = [
  "gloo-net",
  "gloo-timers",
  "http",
+ "js-sys",
  "leptos",
  "leptos_axum",
  "leptos_meta",

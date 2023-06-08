@@ -28,6 +28,7 @@ pub async fn handle_connection(
         let _actor = WsActor::start_in_arbiter(state.arb(), move |ctx| {
             let stream = ws_receiver.map(|x| {
                 x.map(|x| {
+                    tracing::debug!("received message {:?}", x);
                     let res = match x {
                         ws::Message::Binary(x) => {
                             let value = ciborium::from_reader::<TraderMessage, _>(&x[..]);
@@ -47,7 +48,7 @@ pub async fn handle_connection(
                 trader_id: TraderId(nanoid::nanoid!()),
                 sender: Rc::new(Mutex::new(ws_sender)),
                 market,
-                last_trader_time: chrono::Utc::now(),
+                last_trader_time_ms: chrono::Utc::now().timestamp_millis() as u64,
                 last_trader_info: TraderInfo {
                     exposure: Size(dec!(0.0)),
                     balance: Size(dec!(10000.0)),
@@ -66,7 +67,7 @@ struct WsActor {
     trader_id: TraderId,
     market: Addr<MarketActor>,
     sender: Rc<Mutex<SplitSink<WebSocket, ws::Message>>>,
-    last_trader_time: chrono::DateTime<chrono::Utc>,
+    last_trader_time_ms: u64,
     last_trader_info: TraderInfo,
 }
 
@@ -100,6 +101,7 @@ impl Actor for WsActor {
         tracing::info!(agent =? self.trader_id, "ws actor started");
         let recp = ctx.address().recipient::<TickDataUpdate>();
         self.market.do_send(RegisterForUpdates(recp));
+        self.send_server_message(ServerMessage::TraderTimeAck, ctx);
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
@@ -118,13 +120,12 @@ impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
                         order,
                     ));
                 }
-                TraderMessage::TraderTime(time) => {
-                    self.last_trader_time = time;
+                TraderMessage::TraderTime {ms: time} => {
+                    self.last_trader_time_ms = time;
                     self.send_server_message(ServerMessage::TraderTimeAck, ctx)
                 }
-                TraderMessage::TraderTimeAck(time) => {
-                    let diff = time - self.last_trader_time;
-                    let latency = diff.num_milliseconds().unsigned_abs() as u32;
+                TraderMessage::TraderTimeAck {ms: time} => {
+                    let latency = time.abs_diff(self.last_trader_time_ms);
                     let latency = Latency { ms: latency };
                     self.send_server_message(ServerMessage::ConnectionInfo(latency), ctx)
                 }
