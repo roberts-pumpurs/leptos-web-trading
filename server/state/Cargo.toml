@@ -10,3 +10,7 @@ edition = "2021"
 trading-types = { path = "../../trading/trading-types" }
 trading-logic = { path = "../../trading/trading-logic" }
 actix.workspace = true
+serde.workspace = true
+chrono.workspace = true
+leptos.workspace = true
+axum.workspace = true

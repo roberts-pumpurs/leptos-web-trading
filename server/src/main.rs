@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use app::*;
-use axum::extract::Extension;
-use axum::routing::{any, get};
+use axum::{routing::{any, get}, Extension};
 use axum::Router;
 use fileserv::file_and_error_handler;
 use leptos::leptos_server::server_fns_by_path;
@@ -27,9 +26,11 @@ async fn main() {
     let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
     app::register_server_functions();
 
-    println!("{:?}", server_fns_by_path());
-    let (state, handle) = state::spawn_actix_rt();
-    // build our application with a route
+    let server_fns = server_fns_by_path();
+    tracing::info!(server_fns =? server_fns, "Registered Leptos server functions");
+
+    let (state, handle) = state::spawn_actix_rt(leptos_options.clone());
+
     let app = Router::new()
         .route("/ws/:id", get(live_connection::handler))
         .with_state(state)

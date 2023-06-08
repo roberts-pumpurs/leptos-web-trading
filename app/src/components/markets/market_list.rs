@@ -1,48 +1,26 @@
-use chrono::{DateTime, Utc};
 use leptos::*;
 use leptos_router::A;
-use serde::{Deserialize, Serialize};
 
+use serde::{Serialize, Deserialize};
 use crate::error_template::ErrorTemplate;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Market {
-    id: u32,
-    name: String,
-    event: String,
-    liquidity: u64,
-    users: u64,
-    last_activity: DateTime<Utc>,
+    pub id: u32,
+    pub name: String,
+    pub event: String,
 }
 
-#[server(GetMarkets, "/api", "GetCbor")]
+#[server(GetMarkets, "/api")]
 pub async fn get_markets(cx: Scope) -> Result<Vec<Market>, ServerFnError> {
-    Ok(vec![
-        Market {
-            id: 1,
-            name: "Mouz vs ENCE".to_string(),
-            event: "BLAST.TV Major".to_string(),
-            liquidity: 168,
-            users: 13,
-            last_activity: Utc::now(),
-        },
-        Market {
-            id: 2,
-            name: "G2 vs FaZe".to_string(),
-            event: "BLAST.TV Major".to_string(),
-            liquidity: 2312412412,
-            users: 20,
-            last_activity: Utc::now(),
-        },
-        Market {
-            id: 3,
-            name: "Liquid vs Astralis".to_string(),
-            event: "BLAST.TV Major".to_string(),
-            liquidity: 10000,
-            users: 14,
-            last_activity: Utc::now(),
-        },
-    ])
+    let markets = state::get_markets();
+    // NOTE: This is a workaround for the fact that the server functions don't work with types defined elsewhere.
+    let m = markets.into_iter().map(|x| Market {
+        id: x.id,
+        name: x.name,
+        event: x.event,
+    }).collect();
+    Ok(m)
 }
 
 #[cfg(feature = "ssr")]
@@ -108,14 +86,6 @@ pub fn MarketList(cx: Scope) -> impl IntoView {
                                                                 </div>
                                                             </div>
                                                             <div class="flex items-center gap-x-4">
-                                                                <div class="hidden sm:flex sm:flex-col sm:items-end">
-                                                                    <p class="text-sm leading-6 text-gray-900">
-                                                                        "Matched liquidity " {market.liquidity} "€"
-                                                                    </p>
-                                                                    <p class="mt-1 text-xs leading-5 text-gray-500">
-                                                                        "Active users " {market.users}
-                                                                    </p>
-                                                                </div>
                                                                 <A href=market.id.to_string()>
                                                                     <svg
                                                                         class="h-5 w-5 flex-none text-gray-400"

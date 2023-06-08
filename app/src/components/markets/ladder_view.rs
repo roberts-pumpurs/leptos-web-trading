@@ -20,7 +20,7 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
     create_effect(cx, move |_| {
         let host = window().location().host().unwrap_or("127.0.0.1:3000".to_string());
         let protocol = {
-            if window().location().protocol().unwrap_or("http".to_string()).ends_with('s') {
+            if window().location().protocol().unwrap_or("http".to_string()).contains("https") {
                 "wss"
             } else {
                 "ws"

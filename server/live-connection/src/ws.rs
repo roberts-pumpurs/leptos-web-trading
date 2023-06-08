@@ -7,14 +7,14 @@ use actix::{
 use axum::extract::ws::{self, WebSocket};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
-use state::webapp_state::WebAppState;
+use state::WebAppState;
 use tokio::sync::Mutex;
 use trading_logic::market::MarketActor;
 
 pub async fn handle_connection(
     state: WebAppState,
     websocket: axum::extract::ws::WebSocket,
-    market_id: String,
+    market_id: u32,
 ) {
     let (ws_sender, ws_receiver) = websocket.split();
     if let Some(market) = state.markets().get(&market_id) {
@@ -56,7 +56,13 @@ impl WsActor {
 impl Actor for WsActor {
     type Context = Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {}
+    fn started(&mut self, _ctx: &mut Self::Context) {
+        tracing::info!(agent = self.agent, "ws actor started");
+    }
+
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
+        tracing::warn!(agent = self.agent, "ws actor stopped");
+    }
 }
 
 impl StreamHandler<Result<WsMsg, axum::Error>> for WsActor {

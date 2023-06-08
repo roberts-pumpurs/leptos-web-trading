@@ -1,9 +1,14 @@
-pub mod webapp_state;
+mod markets;
+mod webapp_state;
 
 use actix::System;
-use webapp_state::WebAppState;
+use leptos::LeptosOptions;
+pub use markets::{get_markets, Market};
+pub use webapp_state::WebAppState;
 
-pub fn spawn_actix_rt() -> (WebAppState, std::thread::JoinHandle<Result<(), std::io::Error>>) {
+pub fn spawn_actix_rt(
+    leptos_options: LeptosOptions,
+) -> (WebAppState, std::thread::JoinHandle<Result<(), std::io::Error>>) {
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
     let handle = std::thread::spawn(move || {
         let sys = System::new();
@@ -14,5 +19,5 @@ pub fn spawn_actix_rt() -> (WebAppState, std::thread::JoinHandle<Result<(), std:
     });
 
     let sys = rx.recv().unwrap();
-    (WebAppState::new(sys.arbiter().clone()), handle)
+    (WebAppState::new(sys.arbiter().clone(), leptos_options), handle)
 }

@@ -1,22 +1,27 @@
 use std::collections::HashMap;
 
 use actix::*;
+use axum::extract::FromRef;
+use leptos::LeptosOptions;
 use trading_logic::market::MarketActor;
 
-#[derive(Debug, Clone)]
+use crate::get_markets;
+
+#[derive(FromRef, Debug, Clone)]
 pub struct WebAppState {
+    leptos_options: LeptosOptions,
     arb: ArbiterHandle,
-    markets: HashMap<String, Addr<MarketActor>>,
+    markets: HashMap<u32, Addr<MarketActor>>,
 }
 
 impl WebAppState {
-    pub fn new(arb: ArbiterHandle) -> Self {
+    pub fn new(arb: ArbiterHandle, leptos_options: LeptosOptions) -> Self {
         let mut markets = HashMap::new();
-        for market in &["1", "2", "3"] {
+        for market in get_markets() {
             let market_actor = Self::spawn_market(&arb);
-            markets.insert(market.to_string(), market_actor);
+            markets.insert(market.id, market_actor);
         }
-        Self { arb, markets }
+        Self { arb, markets, leptos_options }
     }
 
     pub fn arb(&self) -> &ArbiterHandle {
@@ -27,7 +32,7 @@ impl WebAppState {
         MarketActor::start_in_arbiter(arb, move |_ctx| MarketActor::new())
     }
 
-    pub fn markets(&self) -> &HashMap<String, Addr<MarketActor>> {
+    pub fn markets(&self) -> &HashMap<u32, Addr<MarketActor>> {
         &self.markets
     }
 }
