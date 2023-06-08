@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::A;
+use serde::{Deserialize, Serialize};
 
-use serde::{Serialize, Deserialize};
 use crate::error_template::ErrorTemplate;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -14,12 +14,10 @@ pub struct Market {
 #[server(GetMarkets, "/api")]
 pub async fn get_markets(cx: Scope) -> Result<Vec<Market>, ServerFnError> {
     let markets = state::get_markets();
-    // NOTE: This is a workaround for the fact that the server functions don't work with types defined elsewhere.
-    let m = markets.into_iter().map(|x| Market {
-        id: x.id,
-        name: x.name,
-        event: x.event,
-    }).collect();
+    // NOTE: This is a workaround for the fact that the server functions don't work with types
+    // defined elsewhere.
+    let m =
+        markets.into_iter().map(|x| Market { id: x.id, name: x.name, event: x.event }).collect();
     Ok(m)
 }
 

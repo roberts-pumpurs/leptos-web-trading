@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::common::{LobbyId, Order, RequestId, Size, Tick, TraderId};
+use crate::common::{Order, RequestId, Size, Tick};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum ServerMessage {
-    ConnectionInfo(LobbyId, TraderId, TraderInfo, Latency),
-    MatchInfo(LobbyId, TraderInfo),
+    TraderTimeAck,
+    ConnectionInfo(Latency),
     TickSetWhole(Vec<TickData>),
     TickUpdate(TickData),
     OrderAccepted(RequestId),
@@ -21,7 +21,7 @@ pub struct TickData {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct Latency {
-    pub ms: usize,
+    pub ms: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]

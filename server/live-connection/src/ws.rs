@@ -1,15 +1,21 @@
 use std::rc::Rc;
 
 use actix::{
-    Actor, ActorContext, ActorFutureExt, Addr, Context, ContextFutureSpawner, StreamHandler,
-    WrapFuture,
+    Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, ContextFutureSpawner,
+    Handler, StreamHandler, WrapFuture,
 };
+use anyhow::anyhow;
 use axum::extract::ws::{self, WebSocket};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
+use rust_decimal_macros::dec;
 use state::WebAppState;
 use tokio::sync::Mutex;
+use trading_logic::market::messages::{RegisterForUpdates, TickDataUpdate};
 use trading_logic::market::MarketActor;
+use trading_types::common::{Size, TraderId};
+use trading_types::from_server::{Latency, ServerMessage, TraderInfo};
+use trading_types::from_trader::TraderMessage;
 
 pub async fn handle_connection(
     state: WebAppState,
@@ -20,25 +26,51 @@ pub async fn handle_connection(
     if let Some(market) = state.markets().get(&market_id) {
         let market = market.clone();
         let _actor = WsActor::start_in_arbiter(state.arb(), move |ctx| {
-            let stream = ws_receiver.map(|x| x.map(WsMsg));
+            let stream = ws_receiver.map(|x| {
+                x.map(|x| {
+                    let res = match x {
+                        ws::Message::Binary(x) => {
+                            let value = ciborium::from_reader::<TraderMessage, _>(&x[..]);
+                            match value {
+                                Ok(value) => Ok(value),
+                                Err(_) => Err(anyhow!("invalid message")),
+                            }
+                        }
+                        _ => Err(anyhow!("invalid message")),
+                    };
+                    WsMsg(res)
+                })
+                .map_err(|_| anyhow!("Axum WS error"))
+            });
             WsActor::add_stream(stream, ctx);
-            WsActor { agent: nanoid::nanoid!(), sender: Rc::new(Mutex::new(ws_sender)), market }
+            WsActor {
+                trader_id: TraderId(nanoid::nanoid!()),
+                sender: Rc::new(Mutex::new(ws_sender)),
+                market,
+                last_trader_time: chrono::Utc::now(),
+                last_trader_info: TraderInfo {
+                    exposure: Size(dec!(0.0)),
+                    balance: Size(dec!(10000.0)),
+                    orders: vec![],
+                },
+            }
         });
     }
 }
 
 #[derive(actix::Message, Debug)]
 #[rtype(result = "()")]
-struct WsMsg(pub ws::Message);
+struct WsMsg(pub Result<TraderMessage, anyhow::Error>);
 
 struct WsActor {
-    agent: String,
+    trader_id: TraderId,
     market: Addr<MarketActor>,
     sender: Rc<Mutex<SplitSink<WebSocket, ws::Message>>>,
+    last_trader_time: chrono::DateTime<chrono::Utc>,
+    last_trader_info: TraderInfo,
 }
 
 impl WsActor {
-    #[tracing::instrument(skip(self, ctx), fields(agent = %self.agent))]
     fn send(&self, msg: ws::Message, ctx: &mut Context<Self>) {
         let sender = self.sender.clone();
         async move { sender.lock().await.send(msg).await }
@@ -51,22 +83,65 @@ impl WsActor {
             })
             .spawn(ctx);
     }
+
+    fn send_server_message(&self, msg: ServerMessage, ctx: &mut Context<Self>) {
+        let mut writer = Vec::new();
+        if let Ok(_) = ciborium::into_writer(&msg, &mut writer) {
+            let msg = ws::Message::Binary(writer);
+            self.send(msg, ctx);
+        }
+    }
 }
 
 impl Actor for WsActor {
     type Context = Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {
-        tracing::info!(agent = self.agent, "ws actor started");
+    fn started(&mut self, ctx: &mut Self::Context) {
+        tracing::info!(agent =? self.trader_id, "ws actor started");
+        let recp = ctx.address().recipient::<TickDataUpdate>();
+        self.market.do_send(RegisterForUpdates(recp));
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        tracing::warn!(agent = self.agent, "ws actor stopped");
+        tracing::warn!(agent =? self.trader_id, "ws actor stopped");
     }
 }
 
-impl StreamHandler<Result<WsMsg, axum::Error>> for WsActor {
-    fn handle(&mut self, _item: Result<WsMsg, axum::Error>, _ctx: &mut Context<WsActor>) {
+impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
+    fn handle(&mut self, item: Result<WsMsg, anyhow::Error>, ctx: &mut Context<WsActor>) {
         // TODO forward the message to either the market or respond back immediately
+        if let Ok(WsMsg(Ok(msg))) = item {
+            match msg {
+                TraderMessage::PlaceOrder(_req_id, order) => {
+                    self.market.do_send(trading_logic::market::messages::PlaceOrder(
+                        self.trader_id.clone(),
+                        order,
+                    ));
+                }
+                TraderMessage::TraderTime(time) => {
+                    self.last_trader_time = time;
+                    self.send_server_message(ServerMessage::TraderTimeAck, ctx)
+                }
+                TraderMessage::TraderTimeAck(time) => {
+                    let diff = time - self.last_trader_time;
+                    let latency = diff.num_milliseconds().unsigned_abs() as u32;
+                    let latency = Latency { ms: latency };
+                    self.send_server_message(ServerMessage::ConnectionInfo(latency), ctx)
+                }
+            };
+        }
+    }
+}
+
+impl Handler<TickDataUpdate> for WsActor {
+    type Result = ();
+
+    fn handle(&mut self, msg: TickDataUpdate, ctx: &mut Context<Self>) -> Self::Result {
+        tracing::info!(msg = ?msg, "TickDataUpdate");
+        let msg = match msg {
+            TickDataUpdate::SetRefresh(msg) => ServerMessage::TickSetWhole(msg),
+            TickDataUpdate::SingleUpdate(msg) => ServerMessage::TickUpdate(msg),
+        };
+        self.send_server_message(msg, ctx);
     }
 }

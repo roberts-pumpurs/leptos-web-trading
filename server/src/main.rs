@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use app::*;
-use axum::{routing::{any, get}, Extension};
-use axum::Router;
+use axum::routing::{any, get};
+use axum::{Extension, Router};
 use fileserv::file_and_error_handler;
 use leptos::leptos_server::server_fns_by_path;
 use leptos::*;

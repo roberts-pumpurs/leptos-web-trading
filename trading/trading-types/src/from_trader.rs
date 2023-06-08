@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::common::{LobbyId, Order, RequestId, TraderId};
+use crate::common::{Order, RequestId};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum TraderMessage {
-    InitConnection(RequestId, LobbyId, TraderId),
     PlaceOrder(RequestId, Order),
     // Persist connectivity
     TraderTime(chrono::DateTime<chrono::Utc>),

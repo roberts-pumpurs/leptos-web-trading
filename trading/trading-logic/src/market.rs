@@ -6,7 +6,7 @@ use trading_types::common::{Size, Tick, TraderId};
 pub mod messages {
     use actix::Recipient;
     use trading_types::common::Order;
-    use trading_types::from_server::{MatchInfo, TickData};
+    use trading_types::from_server::TickData;
 
     use super::*;
 
@@ -23,7 +23,6 @@ pub mod messages {
     pub enum TickDataUpdate {
         SetRefresh(Vec<TickData>),
         SingleUpdate(TickData),
-        MatchInfo(MatchInfo),
     }
 }
 
@@ -41,6 +40,18 @@ impl Handler<messages::PlaceOrder> for MarketActor {
 
     fn handle(&mut self, msg: messages::PlaceOrder, _ctx: &mut Context<Self>) -> Self::Result {
         tracing::info!(msg = ?msg, "Received order");
+    }
+}
+
+impl Handler<messages::RegisterForUpdates> for MarketActor {
+    type Result = ();
+
+    fn handle(
+        &mut self,
+        msg: messages::RegisterForUpdates,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Result {
+        tracing::info!(msg = ?msg, "Registering for market updates");
     }
 }
 

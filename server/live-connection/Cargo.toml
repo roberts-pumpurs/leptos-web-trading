@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-state = { path = "../state" }
 axum.workspace = true
 simple_logger.workspace = true
 tokio.workspace = true
@@ -18,5 +17,13 @@ actix.workspace = true
 nanoid.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+ciborium.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+rust_decimal_macros.workspace = true
+rust_decimal.workspace = true
+
+
 trading-types = { path = "../../trading/trading-types" }
 trading-logic = { path = "../../trading/trading-logic" }
+state = { path = "../state" }

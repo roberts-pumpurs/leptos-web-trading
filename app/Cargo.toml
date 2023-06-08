@@ -12,7 +12,8 @@ leptos_router.workspace = true
 leptos_axum = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 state = { path = "../server/state", optional = true }
-
+trading-types = { path = "../trading/trading-types" }
+ciborium.workspace = true
 
 gloo-net.workspace = true
 gloo-timers.workspace = true

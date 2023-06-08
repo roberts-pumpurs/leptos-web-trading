@@ -7,6 +7,7 @@ use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
 use leptos::*;
 use leptos_router::*;
+use trading_types::from_server::ServerMessage;
 
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
@@ -33,8 +34,8 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
             spawn_local(async move {
                 while let Some(msg) = recv.next().await {
                     match msg {
-                        Ok(Message::Text(msg)) => {
-                            set_chat_messages.update(|msgs| msgs.push(msg));
+                        Ok(Message::Bytes(msg)) => {
+                            let value = ciborium::from_reader::<ServerMessage, _>(&msg[..]);
                         }
                         _ => break,
                     }

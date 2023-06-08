@@ -1,4 +1,4 @@
-use axum::extract::{Path, State, WebSocketUpgrade};
+use axum::extract::{State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use state::WebAppState;
 

@@ -139,6 +139,7 @@ dependencies = [
  "axum",
  "cfg-if",
  "chrono",
+ "ciborium",
  "futures",
  "gloo-net",
  "gloo-timers",
@@ -150,6 +151,7 @@ dependencies = [
  "serde",
  "state",
  "thiserror",
+ "trading-types",
 ]
 
 [[package]]
@@ -1560,10 +1562,15 @@ name = "live-connection"
 version = "0.1.0"
 dependencies = [
  "actix",
+ "anyhow",
  "axum",
+ "chrono",
+ "ciborium",
  "futures",
  "log",
  "nanoid",
+ "rust_decimal",
+ "rust_decimal_macros",
  "simple_logger",
  "state",
  "tokio",
@@ -2210,6 +2217,16 @@ dependencies = [
  "rkyv",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "rust_decimal_macros"
+version = "1.29.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e773fd3da1ed42472fdf3cfdb4972948a555bc3d73f5e0bdb99d17e7b54c687"
+dependencies = [
+ "quote",
+ "rust_decimal",
 ]
 
 [[package]]
@@ -2865,6 +2882,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "rust_decimal",
+ "rust_decimal_macros",
  "serde",
 ]
 
