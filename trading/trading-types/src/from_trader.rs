@@ -6,6 +6,6 @@ use crate::common::{Order, RequestId};
 pub enum TraderMessage {
     PlaceOrder(RequestId, Order),
     // Persist connectivity
-    TraderTime {ms: u64},
-    TraderTimeAck {ms: u64},
+    TraderTime { ms: u64 },
+    TraderTimeAck { ms: u64 },
 }

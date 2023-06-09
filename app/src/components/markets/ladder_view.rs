@@ -1,9 +1,4 @@
-use std::sync::{Arc, RwLock};
-
-use chrono::{DateTime, Utc};
-use futures::channel::oneshot;
-use futures::stream::SplitSink;
-use futures::{SinkExt, StreamExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
 use gloo_timers;
@@ -11,41 +6,44 @@ use leptos::*;
 use leptos_router::*;
 use trading_types::from_server::ServerMessage;
 use trading_types::from_trader::TraderMessage;
-
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
     let params = use_params_map(cx);
-    let id = move || {
+    let id = create_memo::<u32>(cx, move |_| {
         params.with(|params| {
             params.get("id").cloned().map(|x| x.parse::<u32>().unwrap_or(1)).unwrap_or(1)
         })
-    };
+    });
+
+    view! { cx,
+        <LadderViewInternal id={id} />
+    }
+}
+#[component]
+fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     let derived_ws_url = create_memo::<String>(cx, move |_| derive_ws_url(id()));
     create_effect(cx, move |_| {
         if let Ok(ws_client) = WebSocket::open(&derived_ws_url()) {
-            let (to_ws_sender, mut to_ws_recv) =
+            let (mut to_ws_sender, mut to_ws_recv) =
                 futures::channel::mpsc::channel::<TraderMessage>(100);
             let (mut sender, mut recv) = ws_client.split();
-            let to_ws_sender = Arc::new(RwLock::new(to_ws_sender));
             // Server -> Client
             {
-                let to_ws_sender = to_ws_sender.clone();
+                let mut to_ws_sender = to_ws_sender.clone();
                 spawn_local(async move {
-                    while let Some(Ok(msg)) = recv.next().await {
+                    loop {
+                        let msg = recv.next().await;
                         match msg {
-                            Message::Bytes(msg) => {
+                            Some(Ok(Message::Bytes(msg))) => {
                                 let Ok(value) = ciborium::from_reader::<ServerMessage, _>(&msg[..]) else {
                                 continue;
                             };
                                 log!("received msg from server {:?}", value);
                                 match value {
                                     ServerMessage::TraderTimeAck => {
-                                        let mut sender = to_ws_sender.write().unwrap();
-
-                                        let now = js_sys::Date::new_0();
-                                        let ms = now.get_time() as u64;
+                                        let ms = current_time_ms();
                                         let msg = TraderMessage::TraderTimeAck { ms };
-                                        let _ = sender.send(msg).await;
+                                        let _ = to_ws_sender.send(msg).await;
                                     }
                                     ServerMessage::ConnectionInfo(_) => (),
                                     ServerMessage::TickSetWhole(_) => (),
@@ -54,7 +52,7 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
                                     ServerMessage::OrderRejected(_, _) => (),
                                 }
                             }
-                            _ => (), // don't act on text msgs
+                            _ => break, // don't act on text msgs
                         }
                     }
                 });
@@ -67,7 +65,7 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
                     if let Ok(_) = ciborium::into_writer(&msg, &mut writer) {
                         let msg = Message::Bytes(writer);
                         if sender.send(msg).await.is_err() {
-                            // TODO reunite with the sender
+                            break
                         }
                     }
                 }
@@ -75,25 +73,27 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
 
             // Every 5 seconds, send a ping to the server
             {
-                let to_ws_sender = to_ws_sender.clone();
                 spawn_local(async move {
-                    use gloo_timers::callback::Interval;
-                    let _ = Interval::new(2_000, move || {
-                        let to_ws_sender = to_ws_sender.clone();
-                        spawn_local(async move {
-                            log!("sending ping to server");
-                            let mut sender = to_ws_sender.write().unwrap();
-                            let now = js_sys::Date::new_0();
-                            let ms = now.get_time() as u64;
-                            let msg = TraderMessage::TraderTime { ms };
-                            let _ = sender.send(msg).await;
-                        })
-                    })
-                    .forget();
+                    loop {
+                        gloo_timers::future::TimeoutFuture::new(5_000).await;
+                        let ms = current_time_ms();
+                        let msg = TraderMessage::TraderTime { ms };
+                        if to_ws_sender.send(msg).await.is_err() {
+                            log!("failed to send ping to server");
+                            break
+                        }
+                    }
                 });
             }
 
-            // TODO create cleanup that makes sure we destroy all websockets
+            // let mut to_ws_sender = to_ws_sender.clone();
+            on_cleanup(cx, move || {
+                log!("Running cleanup");
+                // spawn_local(async move {
+                //     // T
+                //     to_ws_sender.close().await;
+                // });
+            });
         } else {
             warn!("failed to connect to websocket");
         }
@@ -104,6 +104,12 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
             <LadderTable/>
         </div>
     }
+}
+
+fn current_time_ms() -> u64 {
+    let now = js_sys::Date::new_0();
+
+    now.get_time() as u64
 }
 
 fn derive_ws_url(id: u32) -> String {

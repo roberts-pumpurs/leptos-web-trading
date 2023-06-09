@@ -120,11 +120,11 @@ impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
                         order,
                     ));
                 }
-                TraderMessage::TraderTime {ms: time} => {
+                TraderMessage::TraderTime { ms: time } => {
                     self.last_trader_time_ms = time;
                     self.send_server_message(ServerMessage::TraderTimeAck, ctx)
                 }
-                TraderMessage::TraderTimeAck {ms: time} => {
+                TraderMessage::TraderTimeAck { ms: time } => {
                     let latency = time.abs_diff(self.last_trader_time_ms);
                     let latency = Latency { ms: latency };
                     self.send_server_message(ServerMessage::ConnectionInfo(latency), ctx)
