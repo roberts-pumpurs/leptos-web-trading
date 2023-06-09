@@ -67,7 +67,11 @@ impl Handler<messages::RegisterForUpdates> for MarketActor {
     ) -> Self::Result {
         tracing::info!(msg = ?msg, "Registering for market updates");
 
-        let tick_data = self.order_book.values().map(compress_single_order).collect::<Vec<_>>();
+        let mut tick_data = self.order_book.values().map(compress_single_order).collect::<Vec<_>>();
+        tick_data.sort_by(|a, b| match a.tick.0 < b.tick.0 {
+            true => std::cmp::Ordering::Less,
+            false => std::cmp::Ordering::Greater,
+        });
         let update_msg = messages::TickDataUpdate::SetRefresh(tick_data);
         msg.1.do_send(update_msg);
         self.update_subscribers.insert(msg.0, msg.1);
