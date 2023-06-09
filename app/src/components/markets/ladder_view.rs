@@ -1,5 +1,3 @@
-use std::{rc::Rc, time::Duration};
-
 use futures::{FutureExt, SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
@@ -17,9 +15,7 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
         })
     });
 
-    view! { cx,
-        <LadderViewInternal id={id} />
-    }
+    view! { cx, <LadderViewInternal id=id/> }
 }
 
 #[derive(Debug, Clone)]
@@ -118,7 +114,7 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
             }
             return Some(SenderWrapper { sender: to_ws_sender, url: derived_ws_url() })
         }
-        return None
+        None
     });
 
     create_effect(cx, move |_| {
