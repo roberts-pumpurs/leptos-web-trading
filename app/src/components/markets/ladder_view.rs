@@ -1,3 +1,5 @@
+use std::{rc::Rc, time::Duration};
+
 use futures::{FutureExt, SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
@@ -19,83 +21,119 @@ pub fn LadderView(cx: Scope) -> impl IntoView {
         <LadderViewInternal id={id} />
     }
 }
+
+#[derive(Debug, Clone)]
+struct SenderWrapper {
+    sender: futures::channel::mpsc::Sender<Option<TraderMessage>>,
+    url: String,
+}
+
+impl PartialEq for SenderWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+    }
+}
+
 #[component]
 fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     let derived_ws_url = create_memo::<String>(cx, move |_| derive_ws_url(id()));
-    create_effect(cx, move |_| {
-        if let Ok(ws_client) = WebSocket::open(&derived_ws_url()) {
-            let (mut to_ws_sender, mut to_ws_recv) =
-                futures::channel::mpsc::channel::<TraderMessage>(100);
-            let (mut sender, mut recv) = ws_client.split();
-            // Server -> Client
-            {
-                let mut to_ws_sender = to_ws_sender.clone();
+    let ws_client_sender = create_memo::<Option<SenderWrapper>>(cx, move |prev| {
+        // Stop the previous ws connection
+        match prev {
+            Some(Some(x)) => {
+                let mut x = x.clone();
                 spawn_local(async move {
+                    let _ = x.sender.send(None).await;
+                });
+            }
+            _ => (),
+        };
+
+        if let Ok(ws_client) = WebSocket::open(&derived_ws_url()) {
+            let (to_ws_sender, mut to_ws_recv) =
+                futures::channel::mpsc::channel::<Option<TraderMessage>>(100);
+            {
+                let to_ws_sender = to_ws_sender.clone();
+                spawn_local(async move {
+                    let mut ws_client = ws_client.fuse();
+                    let interval = {
+                        let to_ws_sender = to_ws_sender.clone();
+                        gloo_timers::callback::Interval::new(3_000, move || {
+                            let mut to_ws_sender = to_ws_sender.clone();
+                            spawn_local(async move {
+                                let ms = current_time_ms();
+                                let msg = TraderMessage::TraderTime { ms };
+                                let _ = to_ws_sender.send(Some(msg)).await;
+                            });
+                        })
+                    };
+
+                    let mut to_ws_sender = to_ws_sender.clone();
                     loop {
-                        let msg = recv.next().await;
-                        match msg {
-                            Some(Ok(Message::Bytes(msg))) => {
-                                let Ok(value) = ciborium::from_reader::<ServerMessage, _>(&msg[..]) else {
-                                continue;
-                            };
-                                log!("received msg from server {:?}", value);
-                                match value {
-                                    ServerMessage::TraderTimeAck => {
-                                        let ms = current_time_ms();
-                                        let msg = TraderMessage::TraderTimeAck { ms };
-                                        let _ = to_ws_sender.send(msg).await;
+                        futures::select! {
+                            msg = ws_client.next() => {
+                                match msg {
+                                    Some(Ok(Message::Bytes(msg))) => {
+                                        let Ok(value) = ciborium::from_reader::<ServerMessage, _>(&msg[..]) else {
+                                            continue;
+                                        };
+                                        log!("received msg from server {:?}", value);
+                                        match value {
+                                            ServerMessage::TraderTimeAck => {
+                                                let ms = current_time_ms();
+                                                let msg = TraderMessage::TraderTimeAck { ms };
+                                                let _ = to_ws_sender.send(Some(msg)).await;
+                                            }
+                                            ServerMessage::ConnectionInfo(_) => (),
+                                            ServerMessage::TickSetWhole(_) => (),
+                                            ServerMessage::TickUpdate(_) => (),
+                                            ServerMessage::OrderAccepted(_) => (),
+                                            ServerMessage::OrderRejected(_, _) => (),
+                                        }
                                     }
-                                    ServerMessage::ConnectionInfo(_) => (),
-                                    ServerMessage::TickSetWhole(_) => (),
-                                    ServerMessage::TickUpdate(_) => (),
-                                    ServerMessage::OrderAccepted(_) => (),
-                                    ServerMessage::OrderRejected(_, _) => (),
+                                    _ => break, // don't act on text msgs
                                 }
                             }
-                            _ => break, // don't act on text msgs
+                            msg = to_ws_recv.next() => {
+                                match msg {
+                                    Some(Some(msg)) => {
+                                        log!("Sending msg to server {:?}", msg);
+                                        let mut writer = Vec::new();
+                                        if let Ok(_) = ciborium::into_writer(&msg, &mut writer) {
+                                            let msg = Message::Bytes(writer);
+                                            if ws_client.send(msg).await.is_err() {
+                                                break
+                                            }
+                                        }
+                                    }
+                                    _ => break,
+                                }
+                            }
                         }
                     }
+                    interval.cancel();
+                    let _ = ws_client.close().await;
+                    log!("WS client closed");
                 });
             }
+            return Some(SenderWrapper { sender: to_ws_sender, url: derived_ws_url() })
+        }
+        return None
+    });
 
-            // Client -> Server
-            spawn_local(async move {
-                while let Some(msg) = to_ws_recv.next().await {
-                    let mut writer = Vec::new();
-                    if let Ok(_) = ciborium::into_writer(&msg, &mut writer) {
-                        let msg = Message::Bytes(writer);
-                        if sender.send(msg).await.is_err() {
-                            break
-                        }
-                    }
-                }
-            });
+    create_effect(cx, move |_| {
+        log!("ws_client_sender {:?}", ws_client_sender());
+    });
 
-            // Every 5 seconds, send a ping to the server
-            {
+    on_cleanup(cx, move || {
+        log!("Running cleanup");
+        match ws_client_sender() {
+            Some(mut ws_client_sender) => {
                 spawn_local(async move {
-                    loop {
-                        gloo_timers::future::TimeoutFuture::new(5_000).await;
-                        let ms = current_time_ms();
-                        let msg = TraderMessage::TraderTime { ms };
-                        if to_ws_sender.send(msg).await.is_err() {
-                            log!("failed to send ping to server");
-                            break
-                        }
-                    }
+                    let _ = ws_client_sender.sender.send(None).await;
                 });
             }
-
-            // let mut to_ws_sender = to_ws_sender.clone();
-            on_cleanup(cx, move || {
-                log!("Running cleanup");
-                // spawn_local(async move {
-                //     // T
-                //     to_ws_sender.close().await;
-                // });
-            });
-        } else {
-            warn!("failed to connect to websocket");
+            None => (),
         }
     });
 
