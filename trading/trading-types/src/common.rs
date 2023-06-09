@@ -17,7 +17,7 @@ pub struct Size(pub rust_decimal::Decimal);
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct Order {
-    pub odds: Tick,
+    pub tick: Tick,
     pub size: Size,
     pub side: Side,
 }
@@ -38,5 +38,13 @@ impl Tick {
             tick += rust_decimal::Decimal::new(1, 2);
         }
         ticks
+    }
+}
+
+impl std::ops::Add<&Size> for Size {
+    type Output = Size;
+
+    fn add(self, rhs: &Size) -> Self::Output {
+        Size(self.0 + rhs.0)
     }
 }

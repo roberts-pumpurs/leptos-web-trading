@@ -4,7 +4,7 @@ use gloo_net::websocket::Message;
 use gloo_timers;
 use leptos::*;
 use leptos_router::*;
-use trading_types::from_server::ServerMessage;
+use trading_types::from_server::{Latency, ServerMessage, TickData};
 use trading_types::from_trader::TraderMessage;
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
@@ -33,6 +33,8 @@ impl PartialEq for SenderWrapper {
 #[component]
 fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     let derived_ws_url = create_memo::<String>(cx, move |_| derive_ws_url(id()));
+    let (latency, set_latency) = create_signal::<Option<Latency>>(cx, None);
+    let (ladder, set_ladder) = create_signal::<Option<Vec<TickData>>>(cx, None);
     let ws_client_sender = create_memo::<Option<SenderWrapper>>(cx, move |prev| {
         // Stop the previous ws connection
         match prev {
@@ -47,7 +49,7 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
 
         if let Ok(ws_client) = WebSocket::open(&derived_ws_url()) {
             let (to_ws_sender, mut to_ws_recv) =
-                futures::channel::mpsc::channel::<Option<TraderMessage>>(100);
+                futures::channel::mpsc::channel::<Option<TraderMessage>>(5);
             {
                 let to_ws_sender = to_ws_sender.clone();
                 spawn_local(async move {
@@ -80,8 +82,12 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                                                 let msg = TraderMessage::TraderTimeAck { ms };
                                                 let _ = to_ws_sender.send(Some(msg)).await;
                                             }
-                                            ServerMessage::ConnectionInfo(_) => (),
-                                            ServerMessage::TickSetWhole(_) => (),
+                                            ServerMessage::ConnectionInfo(latency) => {
+                                                set_latency(Some(latency));
+                                            },
+                                            ServerMessage::TickSetWhole(set) => {
+                                                set_ladder(Some(set));
+                                            },
                                             ServerMessage::TickUpdate(_) => (),
                                             ServerMessage::OrderAccepted(_) => (),
                                             ServerMessage::OrderRejected(_, _) => (),
@@ -108,6 +114,8 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                         }
                     }
                     interval.cancel();
+                    set_latency(None);
+                    set_ladder(None);
                     let _ = ws_client.close().await;
                     log!("WS client closed");
                 });
@@ -135,7 +143,8 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
 
     view! { cx,
         <div class="HomeView">
-            <LadderTable/>
+            <StatsComponent latency=latency/>
+            <LadderTable ladder=ladder/>
         </div>
     }
 }
@@ -159,7 +168,34 @@ fn derive_ws_url(id: u32) -> String {
 }
 
 #[component]
-fn LadderTable(cx: Scope) -> impl IntoView {
+fn StatsComponent(cx: Scope, latency: ReadSignal<Option<Latency>>) -> impl IntoView {
+    view! { cx,
+        <div>
+            <h3 class="text-base font-semibold leading-6 text-gray-900">"Stats"</h3>
+            <dl class="mt-5 grid grid-cols-1 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-base font-normal text-gray-900">"WS Latency"</dt>
+                    <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
+                        <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
+                            {move || {
+                                latency()
+                                    .map(|x| {
+                                        view! { cx, <span>{x.ms} "ms"</span> }
+                                    })
+                                    .unwrap_or_else(|| {
+                                        view! { cx, <span>"..Connecting"</span> }
+                                    })
+                            }}
+                        </div>
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    }
+}
+
+#[component]
+fn LadderTable(cx: Scope, ladder: ReadSignal<Option<Vec<TickData>>>) -> impl IntoView {
     view! { cx,
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="mt-8 flow-root">
@@ -207,26 +243,34 @@ fn LadderTable(cx: Scope) -> impl IntoView {
                                 </tr>
                             </thead>
                             <tbody class="text-center divide-y divide-gray-200 bg-white ">
-                                <tr class="divide-x divide-gray-200">
-                                    <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
-                                        <input type="number" class="w-full"/>
-                                    </td>
-                                    <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
-                                        "120e"
-                                    </td>
-                                    <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
-                                        "1.01"
-                                    </td>
-                                    <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
-                                        "120e"
-                                    </td>
-                                    <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
-                                        <input type="number" class="w-full"/>
-                                    </td>
-                                    <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
-                                        "500e"
-                                    </td>
-                                </tr>
+                                <For
+                                    each=move || { ladder().unwrap_or_default() }
+                                    key=|data| data.tick.0
+                                    view=move |cx, row| {
+                                        view! { cx,
+                                            <tr class="divide-x divide-gray-200">
+                                                <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
+                                                    <input type="number" class="w-full"/>
+                                                </td>
+                                                <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
+                                                    {row.back.0.to_string()}
+                                                </td>
+                                                <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
+                                                    {row.tick.0.to_string()}
+                                                </td>
+                                                <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
+                                                    {row.lay.0.to_string()}
+                                                </td>
+                                                <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
+                                                    <input type="number" class="w-full"/>
+                                                </td>
+                                                <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
+                                                    {(row.lay.0 + row.back.0).to_string()}
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                />
                             </tbody>
                         </table>
                     </div>

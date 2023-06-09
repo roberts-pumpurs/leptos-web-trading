@@ -9,5 +9,7 @@ edition = "2021"
 trading-types = { path = "../trading-types" }
 
 actix.workspace = true
+rust_decimal_macros.workspace = true
+rust_decimal.workspace = true
 futures.workspace = true
 tracing.workspace = true

@@ -100,7 +100,7 @@ impl Actor for WsActor {
     fn started(&mut self, ctx: &mut Self::Context) {
         tracing::info!(agent =? self.trader_id, "ws actor started");
         let recp = ctx.address().recipient::<TickDataUpdate>();
-        self.market.do_send(RegisterForUpdates(recp));
+        self.market.do_send(RegisterForUpdates(self.trader_id.clone(), recp));
         self.send_server_message(ServerMessage::TraderTimeAck, ctx);
     }
 
@@ -111,7 +111,6 @@ impl Actor for WsActor {
 
 impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
     fn handle(&mut self, item: Result<WsMsg, anyhow::Error>, ctx: &mut Context<WsActor>) {
-        // TODO forward the message to either the market or respond back immediately
         if let Ok(WsMsg(Ok(msg))) = item {
             match msg {
                 TraderMessage::PlaceOrder(_req_id, order) => {
