@@ -149,6 +149,8 @@ dependencies = [
  "leptos_axum",
  "leptos_meta",
  "leptos_router",
+ "rust_decimal",
+ "rust_decimal_macros",
  "serde",
  "state",
  "thiserror",

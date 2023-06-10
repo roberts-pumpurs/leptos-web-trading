@@ -4,8 +4,11 @@ use gloo_net::websocket::Message;
 use gloo_timers;
 use leptos::*;
 use leptos_router::*;
+use rust_decimal_macros::dec;
+use trading_types::common::Tick;
 use trading_types::from_server::{Latency, ServerMessage, TickData};
 use trading_types::from_trader::TraderMessage;
+
 #[component]
 pub fn LadderView(cx: Scope) -> impl IntoView {
     let params = use_params_map(cx);
@@ -34,7 +37,7 @@ impl PartialEq for SenderWrapper {
 fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     let derived_ws_url = create_memo::<String>(cx, move |_| derive_ws_url(id()));
     let (latency, set_latency) = create_signal::<Option<Latency>>(cx, None);
-    let (ladder, set_ladder) = create_signal::<Option<Vec<TickData>>>(cx, None);
+    let (ladder, set_ladder) = create_signal::<Option<(Vec<TickData>, Tick)>>(cx, None);
     let ws_client_sender = create_memo::<Option<SenderWrapper>>(cx, move |prev| {
         // Stop the previous ws connection
         match prev {
@@ -86,12 +89,13 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                                                 set_latency(Some(latency));
                                             },
                                             ServerMessage::TickSetWhole(set) => {
-                                                set_ladder(Some(set));
+                                                set_ladder(Some((set, Tick(dec!(1.51)))));
                                             },
                                             ServerMessage::TickUpdate(new_value) => {
                                                 set_ladder.update(|ladder| {
-                                                    if let Some(ladder) = ladder {
+                                                    if let Some((ladder, last_traded)) = ladder {
 
+                                                        *last_traded = new_value.tick.clone();
                                                         if let Some(val) = ladder.iter_mut().find(|x| x.tick == new_value.tick) {
                                                             *val = new_value;
                                                         }
@@ -204,7 +208,7 @@ fn StatsComponent(cx: Scope, latency: ReadSignal<Option<Latency>>) -> impl IntoV
 }
 
 #[component]
-fn LadderTable(cx: Scope, ladder: ReadSignal<Option<Vec<TickData>>>) -> impl IntoView {
+fn LadderTable(cx: Scope, ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>) -> impl IntoView {
     view! { cx,
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="mt-8 flow-root">
@@ -253,9 +257,19 @@ fn LadderTable(cx: Scope, ladder: ReadSignal<Option<Vec<TickData>>>) -> impl Int
                             </thead>
                             <tbody class="text-center divide-y divide-gray-200 bg-white ">
                                 <For
-                                    each=move || { ladder().unwrap_or_default() }
-                                    key=|data| format!("{}-{}-{}", data.tick.0, data.back.0, data.lay.0,)
-                                    view=move |cx, row| {
+                                    each=move || {
+                                        if let Some((data, last_traded)) = ladder() {
+                                            data.into_iter().map(move |data| {
+                                                let is_last_traded = data.tick.0 == last_traded.0;
+                                                (data, is_last_traded)}).collect()
+                                        } else {
+                                            Vec::new()
+                                        }
+                                    }
+                                    key=|(data, is_last_traded)| {
+                                        format!("{}-{}-{}-{:?}", data.tick.0, data.back.0, data.lay.0, is_last_traded)
+                                    }
+                                    view=move |cx, (row, is_last_traded)| {
                                         view! { cx,
                                             <tr class="divide-x divide-gray-200">
                                                 <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
@@ -264,9 +278,19 @@ fn LadderTable(cx: Scope, ladder: ReadSignal<Option<Vec<TickData>>>) -> impl Int
                                                 <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
                                                     {row.back.0.to_string()}
                                                 </td>
-                                                <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
-                                                    {row.tick.0.to_string()}
-                                                </td>
+                                                {if is_last_traded {
+                                                    view! { cx,
+                                                        <td class="w-1/6 text-center whitespace-nowrap text-sm text-black bg-slate-100">
+                                                        {row.tick.0.to_string()}
+                                                        </td>
+                                                    }
+                                                } else {
+                                                    view! { cx,
+                                                        <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
+                                                            {row.tick.0.to_string()}
+                                                        </td>
+                                                    }
+                                                }}
                                                 <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
                                                     {row.lay.0.to_string()}
                                                 </td>
