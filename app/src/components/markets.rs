@@ -1,4 +1,3 @@
-pub mod active_bets;
 pub mod ladder_view;
 pub mod market_list;
 

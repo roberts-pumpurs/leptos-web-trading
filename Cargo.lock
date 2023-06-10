@@ -2875,6 +2875,8 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "futures",
+ "nanoid",
+ "rand",
  "rust_decimal",
  "rust_decimal_macros",
  "tracing",

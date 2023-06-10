@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, ContextFutureSpawner,
@@ -11,7 +12,7 @@ use futures::{SinkExt, StreamExt};
 use rust_decimal_macros::dec;
 use state::WebAppState;
 use tokio::sync::Mutex;
-use trading_logic::market::messages::{RegisterForUpdates, TickDataUpdate};
+use trading_logic::market::messages::{RegisterTrader, TickDataUpdate};
 use trading_logic::market::MarketActor;
 use trading_types::common::{Size, TraderId};
 use trading_types::from_server::{Latency, ServerMessage, TraderInfo};
@@ -48,6 +49,7 @@ pub async fn handle_connection(
                 trader_id: TraderId(nanoid::nanoid!()),
                 sender: Rc::new(Mutex::new(ws_sender)),
                 market,
+                hb: Instant::now(),
                 last_trader_time_ms: chrono::Utc::now().timestamp_millis() as u64,
                 last_trader_info: TraderInfo {
                     exposure: Size(dec!(0.0)),
@@ -68,10 +70,36 @@ struct WsActor {
     market: Addr<MarketActor>,
     sender: Rc<Mutex<SplitSink<WebSocket, ws::Message>>>,
     last_trader_time_ms: u64,
+    /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
+    /// otherwise we drop connection.
+    hb: Instant,
+
     last_trader_info: TraderInfo,
 }
 
 impl WsActor {
+    /// How often heartbeat pings are sent
+    const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+
+    /// How long before lack of client response causes a timeout
+    const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+
+    /// helper method that checks heartbeats from client
+    fn hb(&self, ctx: &mut Context<Self>) {
+        ctx.run_interval(Self::HEARTBEAT_INTERVAL, |act, ctx| {
+            // check client heartbeats
+            if Instant::now().duration_since(act.hb) > Self::CLIENT_TIMEOUT {
+                // heartbeat timed out
+                tracing::error!("Websocket client inactive, disconnecting!");
+
+                // stop actor
+                ctx.stop();
+
+                // don't try to send a ping
+            }
+        });
+    }
+
     fn send(&self, msg: ws::Message, ctx: &mut Context<Self>) {
         let sender = self.sender.clone();
         async move { sender.lock().await.send(msg).await }
@@ -99,9 +127,13 @@ impl Actor for WsActor {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         tracing::info!(agent =? self.trader_id, "ws actor started");
+        // register client to the market
         let recp = ctx.address().recipient::<TickDataUpdate>();
-        self.market.do_send(RegisterForUpdates(self.trader_id.clone(), recp));
+        self.market.do_send(RegisterTrader(self.trader_id.clone(), recp));
         self.send_server_message(ServerMessage::TraderTimeAck, ctx);
+
+        // we'll start heartbeat process on session start.
+        self.hb(ctx);
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
@@ -114,10 +146,10 @@ impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
         if let Ok(WsMsg(Ok(msg))) = item {
             match msg {
                 TraderMessage::PlaceOrder(_req_id, order) => {
-                    self.market.do_send(trading_logic::market::messages::PlaceOrder(
-                        self.trader_id.clone(),
+                    self.market.do_send(trading_logic::market::messages::PlaceOrder {
+                        trader: self.trader_id.clone(),
                         order,
-                    ));
+                    });
                 }
                 TraderMessage::TraderTime { ms: time } => {
                     self.last_trader_time_ms = time;
@@ -126,7 +158,8 @@ impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
                 TraderMessage::TraderTimeAck { ms: time } => {
                     let latency = time.abs_diff(self.last_trader_time_ms);
                     let latency = Latency { ms: latency };
-                    self.send_server_message(ServerMessage::ConnectionInfo(latency), ctx)
+                    self.send_server_message(ServerMessage::ConnectionInfo(latency), ctx);
+                    self.hb = Instant::now();
                 }
             };
         }

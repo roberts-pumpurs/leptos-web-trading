@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
-use actix::{Actor, Context, Handler, Message, Recipient};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, Message, Recipient};
+use nanoid::nanoid;
 use rust_decimal_macros::dec;
 use trading_types::common::{Order, Size, Tick, TraderId};
 use trading_types::from_server::TickData;
+
+use crate::bot::BotActor;
 
 pub mod messages {
 
@@ -11,11 +14,18 @@ pub mod messages {
 
     #[derive(Message, Debug, Clone)]
     #[rtype(result = "()")]
-    pub struct PlaceOrder(pub TraderId, pub Order);
+    pub struct PlaceOrder {
+        pub trader: TraderId,
+        pub order: Order,
+    }
 
     #[derive(Message, Debug, Clone)]
     #[rtype(result = "()")]
-    pub struct RegisterForUpdates(pub TraderId, pub Recipient<TickDataUpdate>);
+    pub struct SpawnBot;
+
+    #[derive(Message, Debug, Clone)]
+    #[rtype(result = "()")]
+    pub struct RegisterTrader(pub TraderId, pub Recipient<TickDataUpdate>);
 
     #[derive(Message, Debug, Clone)]
     #[rtype(result = "()")]
@@ -27,11 +37,28 @@ pub mod messages {
 
 pub struct MarketActor {
     order_book: HashMap<Tick, OrderBookRange>,
-    update_subscribers: HashMap<TraderId, Recipient<messages::TickDataUpdate>>,
+    update_subscribers: HashMap<TraderId, InternalTraderState>,
+    bots: Vec<Addr<BotActor>>,
+}
+
+struct InternalTraderState {
+    recp: Recipient<messages::TickDataUpdate>,
+    matched: Size,
 }
 
 impl Actor for MarketActor {
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        // Reset the game every minute
+        ctx.run_interval(std::time::Duration::from_secs(60), |act, ctx| {
+            for (_key, val) in act.order_book.iter_mut() {
+                val.clear();
+            }
+            let update_msg = act.tick_data_refresh_msg();
+            act.update_listeners(update_msg, ctx);
+        });
+    }
 }
 
 impl Handler<messages::PlaceOrder> for MarketActor {
@@ -40,13 +67,13 @@ impl Handler<messages::PlaceOrder> for MarketActor {
     fn handle(&mut self, msg: messages::PlaceOrder, _ctx: &mut Context<Self>) -> Self::Result {
         tracing::info!(msg = ?msg, "Received order");
 
-        if let Some(ob) = self.order_book.get_mut(&msg.1.tick) {
-            match msg.1.side {
+        if let Some(ob) = self.order_book.get_mut(&msg.order.tick) {
+            match msg.order.side {
                 trading_types::common::Side::Back => {
-                    ob.back.push((msg.0, msg.1.size));
+                    ob.back.push((msg.trader, msg.order.size));
                 }
                 trading_types::common::Side::Lay => {
-                    ob.lay.push((msg.0, msg.1.size));
+                    ob.lay.push((msg.trader, msg.order.size));
                 }
             }
             // TODO Reduce the order book row by matching backs and lays
@@ -57,24 +84,27 @@ impl Handler<messages::PlaceOrder> for MarketActor {
     }
 }
 
-impl Handler<messages::RegisterForUpdates> for MarketActor {
+impl Handler<messages::RegisterTrader> for MarketActor {
     type Result = ();
 
-    fn handle(
-        &mut self,
-        msg: messages::RegisterForUpdates,
-        _ctx: &mut Context<Self>,
-    ) -> Self::Result {
+    fn handle(&mut self, msg: messages::RegisterTrader, _ctx: &mut Context<Self>) -> Self::Result {
         tracing::info!(msg = ?msg, "Registering for market updates");
 
-        let mut tick_data = self.order_book.values().map(compress_single_order).collect::<Vec<_>>();
-        tick_data.sort_by(|a, b| match a.tick.0 < b.tick.0 {
-            true => std::cmp::Ordering::Less,
-            false => std::cmp::Ordering::Greater,
-        });
-        let update_msg = messages::TickDataUpdate::SetRefresh(tick_data);
+        let update_msg = self.tick_data_refresh_msg();
         msg.1.do_send(update_msg);
-        self.update_subscribers.insert(msg.0, msg.1);
+        let state = InternalTraderState { recp: msg.1, matched: Size(dec!(0)) };
+        self.update_subscribers.insert(msg.0, state);
+    }
+}
+
+impl Handler<messages::SpawnBot> for MarketActor {
+    type Result = ();
+
+    fn handle(&mut self, msg: messages::SpawnBot, ctx: &mut Context<Self>) -> Self::Result {
+        tracing::info!(msg = ?msg, "Spawning bot");
+        let bot = nanoid!(5) + "-bot";
+        let bot = crate::bot::BotActor::new(ctx.address(), TraderId(bot)).start();
+        self.bots.push(bot);
     }
 }
 
@@ -90,13 +120,24 @@ impl MarketActor {
         for tick in Tick::all() {
             order_book.insert(tick.clone(), OrderBookRange::new(tick));
         }
-        Self { order_book, update_subscribers: HashMap::new() }
+
+        Self { order_book, update_subscribers: HashMap::new(), bots: Vec::new() }
     }
 
     pub fn update_listeners(&self, msg: messages::TickDataUpdate, _ctx: &mut Context<Self>) {
-        for (_, recp) in self.update_subscribers.iter() {
-            recp.do_send(msg.clone());
+        for (_, trader) in self.update_subscribers.iter() {
+            trader.recp.do_send(msg.clone());
         }
+    }
+
+    fn tick_data_refresh_msg(&mut self) -> messages::TickDataUpdate {
+        let mut tick_data = self.order_book.values().map(compress_single_order).collect::<Vec<_>>();
+        tick_data.sort_by(|a, b| match a.tick.0 < b.tick.0 {
+            true => std::cmp::Ordering::Less,
+            false => std::cmp::Ordering::Greater,
+        });
+
+        messages::TickDataUpdate::SetRefresh(tick_data)
     }
 }
 
@@ -111,5 +152,10 @@ struct OrderBookRange {
 impl OrderBookRange {
     fn new(tick: Tick) -> Self {
         Self { back: Vec::new(), lay: Vec::new(), tick }
+    }
+
+    fn clear(&mut self) {
+        self.back.clear();
+        self.lay.clear();
     }
 }

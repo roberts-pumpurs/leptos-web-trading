@@ -88,7 +88,16 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                                             ServerMessage::TickSetWhole(set) => {
                                                 set_ladder(Some(set));
                                             },
-                                            ServerMessage::TickUpdate(_) => (),
+                                            ServerMessage::TickUpdate(new_value) => {
+                                                set_ladder.update(|ladder| {
+                                                    if let Some(ladder) = ladder {
+
+                                                        if let Some(val) = ladder.iter_mut().find(|x| x.tick == new_value.tick) {
+                                                            *val = new_value;
+                                                        }
+                                                    }
+                                                });
+                                            },
                                             ServerMessage::OrderAccepted(_) => (),
                                             ServerMessage::OrderRejected(_, _) => (),
                                         }
@@ -245,7 +254,7 @@ fn LadderTable(cx: Scope, ladder: ReadSignal<Option<Vec<TickData>>>) -> impl Int
                             <tbody class="text-center divide-y divide-gray-200 bg-white ">
                                 <For
                                     each=move || { ladder().unwrap_or_default() }
-                                    key=|data| data.tick.0
+                                    key=|data| format!("{}-{}-{}", data.tick.0, data.back.0, data.lay.0,)
                                     view=move |cx, row| {
                                         view! { cx,
                                             <tr class="divide-x divide-gray-200">

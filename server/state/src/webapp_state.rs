@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use actix::*;
 use axum::extract::FromRef;
 use leptos::LeptosOptions;
+use trading_logic::market::messages::SpawnBot;
 use trading_logic::market::MarketActor;
 
 use crate::get_markets;
@@ -19,6 +20,9 @@ impl WebAppState {
         let mut markets = HashMap::new();
         for market in get_markets() {
             let market_actor = Self::spawn_market(&arb);
+            for _ in 0..market.bots {
+                market_actor.do_send(SpawnBot);
+            }
             markets.insert(market.id, market_actor);
         }
         Self { arb, markets, leptos_options }
