@@ -3,7 +3,6 @@ use leptos_router::A;
 
 #[component]
 pub fn Navbar(cx: Scope) -> impl IntoView {
-
     let (show_dropdown, set_show_dropdown) = create_signal(cx, false);
 
     view! { cx,
@@ -19,15 +18,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                         />
                     </A>
                 </div>
-                <div 
-                    class={move ||
-                        if show_dropdown.get() {
-                            "hidden lg:hidden"
-                        } else {
-                            "flex lg:hidden"
-                        }
-                    } 
-                >
+                <div class=move || if show_dropdown.get() { "hidden lg:hidden" } else { "flex lg:hidden" }>
                     <button
                         type="button"
                         class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700"
@@ -62,14 +53,8 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </A>
                 </div>
             </nav>
-            <div 
-                class={move || 
-                    if show_dropdown.get() {
-                        "lg:hidden"
-                    } else {
-                        "hidden lg:hidden"
-                    }
-                } 
+            <div
+                class=move || if show_dropdown.get() { "lg:hidden" } else { "hidden lg:hidden" }
                 role="dialog"
                 aria-modal="true"
             >
