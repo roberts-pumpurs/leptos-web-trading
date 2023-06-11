@@ -3,6 +3,8 @@ use leptos_router::A;
 
 #[component]
 pub fn Navbar(cx: Scope) -> impl IntoView {
+    let (show_dropdown, set_show_dropdown) = create_signal(cx, false);
+
     view! { cx,
         <header class="inset-x-0 top-0 z-50">
             <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
@@ -16,10 +18,11 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                         />
                     </A>
                 </div>
-                <div class="flex lg:hidden">
+                <div class=move || if show_dropdown.get() { "hidden lg:hidden" } else { "flex lg:hidden" }>
                     <button
                         type="button"
                         class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700"
+                        on:click=move |_| set_show_dropdown(true)
                     >
                         <span class="sr-only">"Open main menu"</span>
                         <svg
@@ -50,7 +53,11 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </A>
                 </div>
             </nav>
-            <div class="lg:hidden" role="dialog" aria-modal="true">
+            <div
+                class=move || if show_dropdown.get() { "lg:hidden" } else { "hidden lg:hidden" }
+                role="dialog"
+                aria-modal="true"
+            >
                 <div class="fixed inset-0 z-50"></div>
                 <div class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
                     <div class="flex items-center justify-between">
@@ -62,7 +69,11 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                                 alt=""
                             />
                         </A>
-                        <button type="button" class="-m-2.5 rounded-md p-2.5 text-gray-700">
+                        <button
+                            type="button"
+                            class="-m-2.5 rounded-md p-2.5 text-gray-700"
+                            on:click=move |_| set_show_dropdown(false)
+                        >
                             <span class="sr-only">"Close menu"</span>
                             <svg
                                 class="h-6 w-6"
