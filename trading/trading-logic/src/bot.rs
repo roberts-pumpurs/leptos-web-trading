@@ -3,7 +3,7 @@ use std::time::Duration;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Message};
 use rand::Rng;
 use rust_decimal_macros::dec;
-use trading_types::common::{Order, Side, Size, Tick, TraderId, RequestId};
+use trading_types::common::{Order, RequestId, Side, Size, Tick, TraderId};
 
 use crate::market::messages::{PlaceOrder, TickDataUpdate};
 use crate::market::MarketActor;
@@ -58,10 +58,10 @@ impl Handler<TickDataUpdate> for BotActor {
     fn handle(&mut self, msg: TickDataUpdate, _ctx: &mut Context<Self>) -> Self::Result {
         match msg {
             TickDataUpdate::SingleUpdate(msg) => {
-                let next_placement_size = self.random.gen_range(2..10);
+                let next_placement_size = self.random.gen_range(2..1500);
                 self.next_placement_size = Size(rust_decimal::Decimal::new(next_placement_size, 0));
 
-                let next_placement_tick_diff = self.random.gen_range(-7..7);
+                let next_placement_tick_diff = self.random.gen_range(-2..=2);
                 let next_placement_tick = msg
                     .tick
                     .0
@@ -92,8 +92,8 @@ impl Handler<PlaceNextBet> for BotActor {
             trader: self.trader_id.clone(),
             order: Order {
                 tick: self.next_placement_tick,
-                size: self.next_placement_size.clone(),
-                side: self.next_placement_side.clone(),
+                size: self.next_placement_size,
+                side: self.next_placement_side,
             },
         };
 

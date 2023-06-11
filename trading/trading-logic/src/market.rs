@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Message, Recipient};
 use nanoid::nanoid;
 use rust_decimal_macros::dec;
-use trading_types::common::{Order, Size, Tick, TraderId, RequestId};
+use trading_types::common::{Order, RequestId, Size, Tick, TraderId};
 use trading_types::from_server::TickData;
 
 use crate::bot::BotActor;
@@ -38,16 +38,14 @@ pub mod messages {
 
 pub struct MarketActor {
     order_book: HashMap<Tick, OrderBookRange>,
-    update_subscribers: HashMap<TraderId, InternalTraderState>,
+    subscribers: HashMap<TraderId, InternalTraderState>,
     bots: Vec<Addr<BotActor>>,
 }
 
 struct InternalTraderState {
     recp: Recipient<messages::TickDataUpdate>,
-    matched: Size,
-    // TODO add open orders here
-    // TODO add matched orders here
-    // TODO other metadata, like exposure, etc
+    open_orders: HashMap<RequestId, Order>,
+    matched_orders: HashMap<RequestId, Order>,
 }
 
 impl Actor for MarketActor {
@@ -68,71 +66,97 @@ impl Actor for MarketActor {
 impl Handler<messages::PlaceOrder> for MarketActor {
     type Result = ();
 
-    fn handle(&mut self, mut msg: messages::PlaceOrder, _ctx: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: messages::PlaceOrder, _ctx: &mut Context<Self>) -> Self::Result {
         tracing::info!(msg = ?msg, "Received order");
 
         if let Some(obr) = self.order_book.get_mut(&msg.order.tick) {
-            match msg.order.side {
+            let matched_opposing = match msg.order.side {
                 trading_types::common::Side::Back => {
-                    // TODO match against lays
-                    for (lay_trader_id, lay_req_id, lay_order_size) in obr.lay.iter_mut() {
-                        match msg.order.size.cmp(lay_order_size) {
-                            std::cmp::Ordering::Less => {
-                                lay_order_size.0 -= msg.order.size.0;
-                                msg.order.size.0 = dec!(0);
-                            },
-                            std::cmp::Ordering::Equal => {
-                                msg.order.size.0 = dec!(0);
-                                lay_order_size.0 = dec!(0);
-
-                            },
-                            std::cmp::Ordering::Greater => {
-                                msg.order.size.0 -= lay_order_size.0;
-                                lay_order_size.0 = dec!(0);
-                            },
+                    let (leftover_size, matched_opposing) =
+                        match_orders_back(msg.order.size, &mut obr.lay);
+                    match leftover_size {
+                        Some(leftover_size) => {
+                            if let Some(v) = self.subscribers.get_mut(&msg.trader) {
+                                v.open_orders.insert(msg.request_id.clone(), msg.order.clone());
+                            }
+                            obr.back.push((msg.trader, msg.request_id, leftover_size));
                         }
-                        // TODO send matched message to lay_trader_id
-
-                        if msg.order.size.0 == dec!(0) {
-                            break;
-                        }
+                        None => (),
                     }
-                    if msg.order.size.0 > dec!(0) {
-                        obr.back.push((msg.trader, msg.request_id, msg.order.size));
-                    }
+                    matched_opposing
                 }
                 trading_types::common::Side::Lay => {
-                    for (back_trader_id, back_req_id, back_order_size) in obr.back.iter_mut() {
-                        match msg.order.size.cmp(back_order_size) {
-                            std::cmp::Ordering::Less => {
-                                back_order_size.0 -= msg.order.size.0;
-                            },
-                            std::cmp::Ordering::Equal => {
-                                msg.order.size.0 = dec!(0);
-                                back_order_size.0 = dec!(0);
-
-                            },
-                            std::cmp::Ordering::Greater => {
-                                msg.order.size.0 -= back_order_size.0;
-                                back_order_size.0 = dec!(0);
-                            },
+                    let (leftover_size, matched_opposing) =
+                        match_orders_back(msg.order.size, &mut obr.back);
+                    match leftover_size {
+                        Some(leftover_size) => {
+                            if let Some(v) = self.subscribers.get_mut(&msg.trader) {
+                                v.open_orders.insert(msg.request_id.clone(), msg.order.clone());
+                            }
+                            obr.lay.push((msg.trader, msg.request_id, leftover_size));
                         }
-                        // TODO send matched message to lay_trader_id
-
-                        if msg.order.size.0 == dec!(0) {
-                            break;
-                        }
+                        None => (),
                     }
-                    if msg.order.size.0 > dec!(0) {
-                        obr.lay.push((msg.trader, msg.request_id, msg.order.size));
+                    matched_opposing
+                }
+            };
+            for (trader_id, request_id, leftover_size, fully_matched) in matched_opposing {
+                if let Some(v) = self.subscribers.get_mut(&trader_id) {
+                    if fully_matched {
+                        if let Some(order) = v.open_orders.remove(&request_id) {
+                            v.matched_orders.insert(request_id, order);
+                        }
+                    } else {
+                        v.open_orders
+                            .get_mut(&request_id)
+                            .map(|order| order.size.0 = leftover_size.0);
                     }
                 }
+                // TODO Update the trader with the info that his bets have been matched
             }
 
             let tick_data = compress_order_book_range(obr);
             self.update_listeners(messages::TickDataUpdate::SingleUpdate(tick_data), _ctx);
         }
     }
+}
+
+fn match_orders_back(
+    mut order_size: Size,
+    opposing: &mut Vec<(TraderId, RequestId, Size)>,
+) -> (Option<Size>, Vec<(TraderId, RequestId, Size, bool)>) {
+    let mut matched_opposing = vec![];
+    for (opposing_trader_id, opposing_req_id, opposing_order_size) in opposing.iter_mut() {
+        match order_size.cmp(opposing_order_size) {
+            std::cmp::Ordering::Less => {
+                opposing_order_size.0 -= order_size.0;
+                order_size.0 = dec!(0);
+            }
+            std::cmp::Ordering::Equal => {
+                order_size.0 = dec!(0);
+                opposing_order_size.0 = dec!(0);
+            }
+            std::cmp::Ordering::Greater => {
+                order_size.0 -= opposing_order_size.0;
+                opposing_order_size.0 = dec!(0);
+            }
+        }
+        matched_opposing.push((
+            opposing_trader_id.clone(),
+            opposing_req_id.clone(),
+            *opposing_order_size,
+            opposing_order_size.0 == dec!(0),
+        ));
+
+        if order_size.0 == dec!(0) {
+            break
+        }
+    }
+    *opposing = opposing.drain_filter(|(_, _, size)| size.0 > dec!(0)).collect::<Vec<_>>();
+    if order_size.0 > dec!(0) {
+        return (Some(order_size), matched_opposing)
+    }
+    (None, matched_opposing)
 }
 
 impl Handler<messages::RegisterTrader> for MarketActor {
@@ -143,8 +167,12 @@ impl Handler<messages::RegisterTrader> for MarketActor {
 
         let update_msg = self.tick_data_refresh_msg();
         msg.1.do_send(update_msg);
-        let state = InternalTraderState { recp: msg.1, matched: Size(dec!(0)) };
-        self.update_subscribers.insert(msg.0, state);
+        let state = InternalTraderState {
+            recp: msg.1,
+            open_orders: HashMap::new(),
+            matched_orders: HashMap::new(),
+        };
+        self.subscribers.insert(msg.0, state);
     }
 }
 
@@ -160,15 +188,6 @@ impl Handler<messages::SpawnBot> for MarketActor {
 }
 
 fn compress_order_book_range(value: &mut OrderBookRange) -> TickData {
-    let lays = value.lay.drain_filter(|(a, b, size)| {
-        size.0 > dec!(0)
-    }).collect::<Vec<_>>();
-    value.lay = lays;
-    let backs: Vec<(TraderId, RequestId, Size)> = value.back.drain_filter(|(a, b, size)| {
-        size.0 > dec!(0)
-    }).collect::<Vec<_>>();
-    value.back = backs;
-
     let compressed_back = value.back.iter().map(|x| &x.2).fold(Size(dec!(0)), |acc, i| acc + i);
     let compressed_lay = value.lay.iter().map(|x| &x.2).fold(Size(dec!(0)), |acc, i| acc + i);
     TickData {
@@ -187,17 +206,18 @@ impl MarketActor {
             order_book.insert(tick, OrderBookRange::new(tick));
         }
 
-        Self { order_book, update_subscribers: HashMap::new(), bots: Vec::new() }
+        Self { order_book, subscribers: HashMap::new(), bots: Vec::new() }
     }
 
     pub fn update_listeners(&self, msg: messages::TickDataUpdate, _ctx: &mut Context<Self>) {
-        for (_, trader) in self.update_subscribers.iter() {
+        for (_, trader) in self.subscribers.iter() {
             trader.recp.do_send(msg.clone());
         }
     }
 
     fn tick_data_refresh_msg(&mut self) -> messages::TickDataUpdate {
-        let mut tick_data = self.order_book.values_mut().map(compress_order_book_range).collect::<Vec<_>>();
+        let mut tick_data =
+            self.order_book.values_mut().map(compress_order_book_range).collect::<Vec<_>>();
         tick_data.sort_by(|a, b| match a.tick.0 < b.tick.0 {
             true => std::cmp::Ordering::Less,
             false => std::cmp::Ordering::Greater,
