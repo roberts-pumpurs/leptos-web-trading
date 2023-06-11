@@ -6,6 +6,7 @@ use rust_decimal_macros::dec;
 use trading_types::common::{Order, RequestId, Size, Tick, TraderId};
 use trading_types::from_server::TickData;
 
+use self::messages::PlaceOrder;
 use crate::bot::BotActor;
 
 pub mod messages {
@@ -26,7 +27,18 @@ pub mod messages {
 
     #[derive(Message, Debug, Clone)]
     #[rtype(result = "()")]
-    pub struct RegisterTrader(pub TraderId, pub Recipient<TickDataUpdate>);
+    pub struct RegisterTrader(
+        pub TraderId,
+        pub Recipient<TickDataUpdate>,
+        pub Recipient<OrderStateUpdate>,
+    );
+
+    #[derive(Message, Debug, Clone)]
+    #[rtype(result = "()")]
+    pub struct OrderStateUpdate {
+        pub open_orders: HashMap<RequestId, Order>,
+        pub matched_orders: HashMap<RequestId, Order>,
+    }
 
     #[derive(Message, Debug, Clone)]
     #[rtype(result = "()")]
@@ -39,12 +51,13 @@ pub mod messages {
 
 pub struct MarketActor {
     order_book: HashMap<Tick, OrderBookRange>,
-    subscribers: HashMap<TraderId, InternalTraderState>,
+    traders: HashMap<TraderId, InternalTraderState>,
     bots: Vec<Addr<BotActor>>,
 }
 
 struct InternalTraderState {
-    recp: Recipient<messages::TickDataUpdate>,
+    recp_tick_update: Recipient<messages::TickDataUpdate>,
+    recp_order_update: Recipient<messages::OrderStateUpdate>,
     open_orders: HashMap<RequestId, Order>,
     matched_orders: HashMap<RequestId, Order>,
 }
@@ -58,7 +71,7 @@ impl Actor for MarketActor {
             for (_key, val) in act.order_book.iter_mut() {
                 val.clear();
             }
-            for (_key, val) in act.subscribers.iter_mut() {
+            for (_key, val) in act.traders.iter_mut() {
                 val.clear();
             }
 
@@ -73,101 +86,129 @@ impl Handler<messages::PlaceOrder> for MarketActor {
 
     fn handle(&mut self, msg: messages::PlaceOrder, _ctx: &mut Context<Self>) -> Self::Result {
         tracing::info!(msg = ?msg, "Received order");
+        let Some(mut trader) = self.traders.get_mut(&msg.trader) else {
+            return;
+        };
 
         if let Some(obr) = self.order_book.get_mut(&msg.order.tick) {
-            let matched_opposing = match msg.order.side {
-                trading_types::common::Side::Back => {
-                    let (leftover_size, matched_opposing) =
-                        match_orders_back(msg.order.size, &mut obr.lay);
-                    match leftover_size {
-                        Some(leftover_size) => {
-                            if let Some(v) = self.subscribers.get_mut(&msg.trader) {
-                                v.open_orders.insert(msg.request_id.clone(), msg.order.clone());
-                            }
-                            obr.back.push((msg.trader, msg.request_id, leftover_size));
-                        }
-                        None => (),
-                    }
-                    matched_opposing
-                }
-                trading_types::common::Side::Lay => {
-                    let (leftover_size, matched_opposing) =
-                        match_orders_back(msg.order.size, &mut obr.back);
-                    match leftover_size {
-                        Some(leftover_size) => {
-                            if let Some(v) = self.subscribers.get_mut(&msg.trader) {
-                                v.open_orders.insert(msg.request_id.clone(), msg.order.clone());
-                            }
-                            obr.lay.push((msg.trader, msg.request_id, leftover_size));
-                        }
-                        None => (),
-                    }
-                    matched_opposing
-                }
+            let affected_traders = match msg.order.side {
+                trading_types::common::Side::Back => Self::match_orders(
+                    msg,
+                    &mut obr.open_lays,
+                    &mut obr.total_matched,
+                    &mut obr.open_backs,
+                    &mut trader,
+                ),
+                trading_types::common::Side::Lay => Self::match_orders(
+                    msg,
+                    &mut obr.open_backs,
+                    &mut obr.total_matched,
+                    &mut obr.open_lays,
+                    &mut trader,
+                ),
             };
+            // Send tick update to all listeners
             let tick_data = compress_order_book_range(obr);
-            if !matched_opposing.is_empty() {
+            if !affected_traders.is_empty() {
                 self.update_listeners(
                     messages::TickDataUpdate::NewLatestMatch(tick_data.clone()),
                     _ctx,
                 );
             }
-
-            for (trader_id, request_id, leftover_size, fully_matched) in matched_opposing {
-                if let Some(v) = self.subscribers.get_mut(&trader_id) {
-                    if fully_matched {
-                        if let Some(order) = v.open_orders.remove(&request_id) {
-                            v.matched_orders.insert(request_id, order);
-                        }
-                    } else {
-                        v.open_orders
-                            .get_mut(&request_id)
-                            .map(|order| order.size.0 = leftover_size.0);
-                    }
-                }
-                // TODO Update the trader with the info that his bets have been matched
-            }
             self.update_listeners(messages::TickDataUpdate::SingleUpdate(tick_data), _ctx);
+
+            // Send individual order updates to affected traders
+            for (trader_id, request_id, new_size) in affected_traders {
+                let Some(trader) = self.traders.get_mut(&trader_id) else {
+                    continue;
+                };
+
+                if new_size.0 == dec!(0) {
+                    trader.open_orders.remove(&request_id);
+                } else {
+                    trader.open_orders.get_mut(&request_id).map(|order| {
+                        order.size = new_size;
+                    });
+                }
+
+                let update_msg = messages::OrderStateUpdate {
+                    open_orders: trader.open_orders.clone(),
+                    matched_orders: trader.matched_orders.clone(),
+                };
+                trader.recp_order_update.do_send(update_msg);
+            }
         }
     }
 }
 
-fn match_orders_back(
-    mut order_size: Size,
-    opposing: &mut Vec<(TraderId, RequestId, Size)>,
-) -> (Option<Size>, Vec<(TraderId, RequestId, Size, bool)>) {
-    let mut matched_opposing = vec![];
-    for (opposing_trader_id, opposing_req_id, opposing_order_size) in opposing.iter_mut() {
-        match order_size.cmp(opposing_order_size) {
-            std::cmp::Ordering::Less => {
-                opposing_order_size.0 -= order_size.0;
-                order_size.0 = dec!(0);
-            }
-            std::cmp::Ordering::Equal => {
-                order_size.0 = dec!(0);
-                opposing_order_size.0 = dec!(0);
-            }
-            std::cmp::Ordering::Greater => {
-                order_size.0 -= opposing_order_size.0;
-                opposing_order_size.0 = dec!(0);
-            }
-        }
-        matched_opposing.push((
-            opposing_trader_id.clone(),
-            opposing_req_id.clone(),
-            *opposing_order_size,
-            opposing_order_size.0 == dec!(0),
-        ));
+impl MarketActor {
+    fn match_orders(
+        mut order: PlaceOrder,
+        opposing_orders: &mut Vec<(TraderId, RequestId, Size)>,
+        matched_aggregate: &mut Size,
+        aligned_orders: &mut Vec<(TraderId, RequestId, Size)>,
+        trader: &mut InternalTraderState,
+    ) -> Vec<(TraderId, RequestId, Size)> {
+        trader.open_orders.insert(order.request_id.clone(), order.order.clone());
 
-        if order_size.0 == dec!(0) {
-            break
+        let mut affected_traders = vec![];
+        let original_aligned = order.clone();
+        let mut leftover_amount = order.order.size.clone();
+        let mut matched_amount = Size(dec!(0));
+
+        for (opposing_trader_id, opposing_req_id, opposing_order_size) in opposing_orders.iter_mut()
+        {
+            match leftover_amount.cmp(opposing_order_size) {
+                std::cmp::Ordering::Less => {
+                    opposing_order_size.0 -= leftover_amount.0;
+                    matched_amount.0 += leftover_amount.0;
+                    leftover_amount.0 = dec!(0);
+                }
+                std::cmp::Ordering::Equal => {
+                    matched_amount.0 += leftover_amount.0;
+                    opposing_order_size.0 = dec!(0);
+                    leftover_amount.0 = dec!(0);
+                }
+                std::cmp::Ordering::Greater => {
+                    leftover_amount.0 -= opposing_order_size.0;
+                    matched_amount.0 += opposing_order_size.0;
+                    opposing_order_size.0 = dec!(0);
+                }
+            }
+            affected_traders.push((
+                opposing_trader_id.clone(),
+                opposing_req_id.clone(),
+                opposing_order_size.clone(),
+            ));
+
+            if order.order.size.0 == dec!(0) {
+                break
+            }
         }
+        matched_aggregate.0 += matched_amount.0;
+
+        if leftover_amount.0 > dec!(0) {
+            aligned_orders.push((order.trader.clone(), order.request_id.clone(), leftover_amount));
+            trader.open_orders.insert(order.request_id.clone(), order.order.clone());
+        }
+        if matched_amount.0 > dec!(0) {
+            trader.matched_orders.insert(
+                order.request_id.clone(),
+                Order { size: matched_amount, ..original_aligned.order.clone() },
+            );
+        }
+
+        let update_msg = messages::OrderStateUpdate {
+            open_orders: trader.open_orders.clone(),
+            matched_orders: trader.matched_orders.clone(),
+        };
+        trader.recp_order_update.do_send(update_msg);
+
+        *opposing_orders =
+            opposing_orders.drain_filter(|(_, _, size)| size.0 > dec!(0)).collect::<Vec<_>>();
+
+        return affected_traders
     }
-    *opposing = opposing.drain_filter(|(_, _, size)| size.0 > dec!(0)).collect::<Vec<_>>();
-    if order_size.0 > dec!(0) {
-        return (Some(order_size), matched_opposing)
-    }
-    (None, matched_opposing)
 }
 
 impl Handler<messages::RegisterTrader> for MarketActor {
@@ -179,11 +220,12 @@ impl Handler<messages::RegisterTrader> for MarketActor {
         let update_msg = self.tick_data_refresh_msg();
         msg.1.do_send(update_msg);
         let state = InternalTraderState {
-            recp: msg.1,
+            recp_tick_update: msg.1,
+            recp_order_update: msg.2,
             open_orders: HashMap::new(),
             matched_orders: HashMap::new(),
         };
-        self.subscribers.insert(msg.0, state);
+        self.traders.insert(msg.0, state);
     }
 }
 
@@ -199,14 +241,14 @@ impl Handler<messages::SpawnBot> for MarketActor {
 }
 
 fn compress_order_book_range(value: &mut OrderBookRange) -> TickData {
-    let compressed_back = value.back.iter().map(|x| &x.2).fold(Size(dec!(0)), |acc, i| acc + i);
-    let compressed_lay = value.lay.iter().map(|x| &x.2).fold(Size(dec!(0)), |acc, i| acc + i);
+    let open_backs = value.open_backs.iter().map(|x| &x.2).fold(Size(dec!(0)), |acc, i| acc + i);
+    let open_lays = value.open_lays.iter().map(|x| &x.2).fold(Size(dec!(0)), |acc, i| acc + i);
+    let total_matched = value.total_matched;
     TickData {
-        total_liquidity: Size(compressed_back.0 + compressed_lay.0),
         tick: value.tick,
-        back: compressed_back,
-        lay: compressed_lay,
-        matched_liquidity: Size(dec!(0)),
+        total_matched,
+        available_backs: open_backs,
+        available_lays: open_lays,
     }
 }
 
@@ -217,12 +259,12 @@ impl MarketActor {
             order_book.insert(tick, OrderBookRange::new(tick));
         }
 
-        Self { order_book, subscribers: HashMap::new(), bots: Vec::new() }
+        Self { order_book, traders: HashMap::new(), bots: Vec::new() }
     }
 
     pub fn update_listeners(&self, msg: messages::TickDataUpdate, _ctx: &mut Context<Self>) {
-        for (_, trader) in self.subscribers.iter() {
-            trader.recp.do_send(msg.clone());
+        for (_, trader) in self.traders.iter() {
+            trader.recp_tick_update.do_send(msg.clone());
         }
     }
 
@@ -241,19 +283,21 @@ impl MarketActor {
 #[derive(Message)]
 #[rtype(result = "()")]
 struct OrderBookRange {
-    back: Vec<(TraderId, RequestId, Size)>,
-    lay: Vec<(TraderId, RequestId, Size)>,
+    open_backs: Vec<(TraderId, RequestId, Size)>,
+    open_lays: Vec<(TraderId, RequestId, Size)>,
+    total_matched: Size,
     tick: Tick,
 }
 
 impl OrderBookRange {
     fn new(tick: Tick) -> Self {
-        Self { back: Vec::new(), lay: Vec::new(), tick }
+        Self { open_backs: Vec::new(), open_lays: Vec::new(), tick, total_matched: Size(dec!(0)) }
     }
 
     fn clear(&mut self) {
-        self.back.clear();
-        self.lay.clear();
+        self.open_backs.clear();
+        self.open_lays.clear();
+        self.total_matched = Size(dec!(0));
     }
 }
 impl InternalTraderState {

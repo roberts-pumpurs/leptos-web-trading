@@ -5,7 +5,7 @@ use rand::Rng;
 use rust_decimal_macros::dec;
 use trading_types::common::{Order, RequestId, Side, Size, Tick, TraderId};
 
-use crate::market::messages::{PlaceOrder, TickDataUpdate};
+use crate::market::messages::{OrderStateUpdate, PlaceOrder, TickDataUpdate};
 use crate::market::MarketActor;
 
 pub struct BotActor {
@@ -40,6 +40,7 @@ impl Actor for BotActor {
         self.market.do_send(crate::market::messages::RegisterTrader(
             self.trader_id.clone(),
             ctx.address().recipient(),
+            ctx.address().recipient(),
         ));
 
         let next_placement_in = Duration::from_millis(self.random.gen_range(500..2000));
@@ -58,6 +59,13 @@ impl Handler<TickDataUpdate> for BotActor {
             TickDataUpdate::SetRefresh(_msg) => (),
             TickDataUpdate::SingleUpdate(_) => (),
         };
+    }
+}
+impl Handler<OrderStateUpdate> for BotActor {
+    type Result = ();
+
+    fn handle(&mut self, msg: OrderStateUpdate, _ctx: &mut Context<Self>) -> Self::Result {
+        // noop
     }
 }
 
