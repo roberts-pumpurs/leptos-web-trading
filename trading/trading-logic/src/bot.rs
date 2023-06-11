@@ -90,7 +90,7 @@ impl Handler<PlaceNextBet> for BotActor {
         let msg = PlaceOrder {
             trader: self.trader_id.clone(),
             order: Order {
-                tick: self.next_placement_tick.clone(),
+                tick: self.next_placement_tick,
                 size: self.next_placement_size.clone(),
                 side: self.next_placement_side.clone(),
             },

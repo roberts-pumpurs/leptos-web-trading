@@ -111,14 +111,20 @@ impl Handler<messages::SpawnBot> for MarketActor {
 fn compress_single_order(value: &OrderBookRange) -> TickData {
     let compressed_back = value.back.iter().map(|x| &x.1).fold(Size(dec!(0)), |acc, i| acc + i);
     let compressed_lay = value.lay.iter().map(|x| &x.1).fold(Size(dec!(0)), |acc, i| acc + i);
-    TickData { tick: value.tick.clone(), back: compressed_back, lay: compressed_lay }
+    TickData {
+        total_liquidity: Size(compressed_back.0 + compressed_lay.0),
+        tick: value.tick,
+        back: compressed_back,
+        lay: compressed_lay,
+        matched_liquidity: Size(dec!(0)),
+    }
 }
 
 impl MarketActor {
     pub fn new() -> Self {
         let mut order_book = HashMap::new();
         for tick in Tick::all() {
-            order_book.insert(tick.clone(), OrderBookRange::new(tick));
+            order_book.insert(tick, OrderBookRange::new(tick));
         }
 
         Self { order_book, update_subscribers: HashMap::new(), bots: Vec::new() }

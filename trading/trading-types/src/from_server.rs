@@ -17,6 +17,8 @@ pub struct TickData {
     pub back: Size,
     pub lay: Size,
     pub tick: Tick,
+    pub matched_liquidity: Size,
+    pub total_liquidity: Size,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]

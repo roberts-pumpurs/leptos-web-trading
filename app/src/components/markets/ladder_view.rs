@@ -7,7 +7,7 @@ use leptos::html::Input;
 use leptos::*;
 use leptos_router::*;
 use rust_decimal_macros::dec;
-use trading_types::common::{Order, RequestId, Side, Size, Tick};
+use trading_types::common::{Order, RequestId, Side, Size};
 use trading_types::from_server::{Latency, ServerMessage, TickData};
 use trading_types::from_trader::TraderMessage;
 
@@ -35,11 +35,18 @@ impl PartialEq for SenderWrapper {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct TickDataWrapper {
+    id: usize,
+    tick_data: RwSignal<TickData>,
+    is_last_traded: RwSignal<bool>,
+}
+
 #[component]
 fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     let derived_ws_url = create_memo::<String>(cx, move |_| derive_ws_url(id()));
     let (latency, set_latency) = create_signal::<Option<Latency>>(cx, None);
-    let (ladder, set_ladder) = create_signal::<Option<(Vec<TickData>, Tick)>>(cx, None);
+    let (ladder, set_ladder) = create_signal::<Vec<TickDataWrapper>>(cx, vec![]);
     let ws_client_sender = create_memo::<Option<SenderWrapper>>(cx, move |prev| {
         // Stop the previous ws connection
         match prev {
@@ -91,17 +98,34 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                                                 set_latency(Some(latency));
                                             },
                                             ServerMessage::TickSetWhole(set) => {
-                                                set_ladder(Some((set, Tick(dec!(1.51)))));
+                                                let res = set.into_iter().enumerate().map(|(idx, data)| {
+                                                    let tick_data = create_rw_signal(cx, data);
+                                                    let is_last_traded = create_rw_signal(cx, false);
+
+                                                    TickDataWrapper {
+                                                        id: idx,
+                                                        tick_data,
+                                                        is_last_traded,
+                                                    }
+                                                }).collect::<Vec<_>>();
+                                                set_ladder(res);
                                             },
                                             ServerMessage::TickUpdate(new_value) => {
                                                 set_ladder.update(|ladder| {
-                                                    if let Some((ladder, last_traded)) = ladder {
-
-                                                        *last_traded = new_value.tick.clone();
-                                                        if let Some(val) = ladder.iter_mut().find(|x| x.tick == new_value.tick) {
-                                                            *val = new_value;
+                                                    ladder.iter_mut().for_each(|x| {
+                                                        if x.tick_data.get_untracked().tick == new_value.tick {
+                                                            x.tick_data.update(|prev| {
+                                                                *prev = new_value.clone();
+                                                            });
+                                                            x.is_last_traded.update(|prev| {
+                                                                *prev = true;
+                                                            });
+                                                        } else {
+                                                            x.is_last_traded.update(|prev| {
+                                                                *prev = false;
+                                                            });
                                                         }
-                                                    }
+                                                    });
                                                 });
                                             },
                                             ServerMessage::OrderAccepted(_) => (),
@@ -130,7 +154,7 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                     }
                     interval.cancel();
                     set_latency(None);
-                    set_ladder(None);
+                    set_ladder(vec![]);
                     let _ = ws_client.close().await;
                     log!("WS client closed");
                 });
@@ -212,19 +236,9 @@ fn StatsComponent(cx: Scope, latency: ReadSignal<Option<Latency>>) -> impl IntoV
 #[component]
 fn LadderTable(
     cx: Scope,
-    ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>,
+    #[prop(into)] ladder: Signal<Vec<TickDataWrapper>>,
     ws_client_sender: Memo<Option<SenderWrapper>>,
 ) -> impl IntoView {
-    let ladder = create_memo(cx, move |_| {
-        ladder().map(|(ladder, last_traded)| {
-            let ladder = ladder;
-            let ladder = ladder.into_iter().map(move |data| {
-                let is_last_traded = data.tick.0 == last_traded.0;
-                (data, is_last_traded)
-            });
-            ladder.collect::<Vec<_>>()
-        })
-    });
     view! { cx,
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="mt-8 flow-root">
@@ -273,30 +287,16 @@ fn LadderTable(
                             </thead>
                             <tbody class="text-center divide-y divide-gray-200 bg-white ">
                                 {move || {
-                                    if let Some(extracted_ladder) = ladder() {
-                                        view! { cx,
-                                            <For
-                                                each=move || extracted_ladder.clone().into_iter().enumerate()
-                                                key=|(idx, _data)| { *idx }
-                                                view=move |cx, (_idx, (row, is_last_traded))| {
-                                                    view! { cx, <TickRow row=row is_last_traded=is_last_traded ws_client_sender=ws_client_sender/> }
-                                                }
-                                            />
-                                        }
-                                            .into_view(cx)
-                                    } else {
-                                        view! { cx,
-                                            <tr class="bg-white">
-                                                <td
-                                                    class="px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
-                                                    colspan="6"
-                                                >
-                                                    "No data"
-                                                </td>
-                                            </tr>
-                                        }
-                                            .into_view(cx)
+                                    view! { cx,
+                                        <For
+                                            each=ladder
+                                            key=|val| { val.id }
+                                            view=move |cx, data| {
+                                                view! { cx, <TickRow data=data ws_client_sender=ws_client_sender/> }
+                                            }
+                                        />
                                     }
+                                        .into_view(cx)
                                 }}
                             </tbody>
                         </table>
@@ -310,14 +310,12 @@ fn LadderTable(
 #[component]
 fn TickRow(
     cx: Scope,
-    row: TickData,
-    is_last_traded: bool,
+    data: TickDataWrapper,
     ws_client_sender: Memo<Option<SenderWrapper>>,
 ) -> impl IntoView {
     let input_element_back: NodeRef<Input> = create_node_ref(cx);
     let input_element_lay: NodeRef<Input> = create_node_ref(cx);
 
-    let tick = row.tick.clone();
     let on_submit_core = move |node_ref: NodeRef<Input>, side: Side| {
         // here, we'll extract the value from the input
         let Some(value) = node_ref() else {
@@ -327,6 +325,7 @@ fn TickRow(
         let Ok(value) = value.parse::<rust_decimal::Decimal>() else {
             return;
         };
+        let tick = data.tick_data.get().tick;
         let order = Order { tick, size: Size(value), side };
 
         let sender = ws_client_sender();
@@ -360,32 +359,56 @@ fn TickRow(
                     <input type="number" class="w-full" node_ref=input_element_back/>
                 </form>
             </td>
-            <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
-                {row.back.0.to_string()}
-            </td>
-            {if is_last_traded {
+            {move || {
+                let row = data.tick_data.get();
+                let is_last_traded = data.is_last_traded.get();
                 view! { cx,
-                    <td class="w-1/6 text-center whitespace-nowrap text-sm text-black bg-slate-100">
-                        {row.tick.0.to_string()}
+                    <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
+                        {row.back.0.to_string()}
                     </td>
-                }
-            } else {
-                view! { cx,
-                    <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
-                        {row.tick.0.to_string()}
+                    {if is_last_traded {
+                        view! { cx,
+                            <td class="w-1/6 text-center whitespace-nowrap text-sm text-black bg-slate-100">
+                                {row.tick.0.to_string()}
+                            </td>
+                        }
+                    } else {
+                        view! { cx,
+                            <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
+                                {row.tick.0.to_string()}
+                            </td>
+                        }
+                    }}
+                    <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
+                        {row.lay.0.to_string()}
                     </td>
                 }
             }}
-            <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
-                {row.lay.0.to_string()}
-            </td>
             <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
                 <form on:submit=on_submit_lay>
                     <input type="number" class="w-full" node_ref=input_element_lay/>
                 </form>
             </td>
             <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
-                {(row.lay.0 + row.back.0).to_string()}
+                {move || {
+                    let data = data.tick_data.get();
+                    let matched_liquidity = data.matched_liquidity;
+                    let total_liquidity = data.total_liquidity;
+                    if total_liquidity.0 == dec!(0) {
+                        return view! { cx,
+                                <progress value="0" max="100">
+                                    "0%"
+                                </progress>
+                            };
+                    }
+                    let percentage_matched = matched_liquidity.0 / total_liquidity.0 * dec!(100);
+                    view! { cx,
+                        <progress value=matched_liquidity.0.to_string() max=total_liquidity.0.to_string()>
+                            {percentage_matched.to_string()}
+                            "%"
+                        </progress>
+                    }
+                }}
             </td>
         </tr>
     }
