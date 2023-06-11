@@ -16,8 +16,8 @@ pub enum ServerMessage {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TraderOrders {
-    pub unmatched_orders: HashMap<RequestId, Order>,
-    pub matched_orders: HashMap<RequestId, Order>,
+    pub unmatched_orders: HashMap<Tick, Order>,
+    pub matched_orders: HashMap<Tick, Order>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]

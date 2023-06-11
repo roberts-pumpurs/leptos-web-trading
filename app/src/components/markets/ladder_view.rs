@@ -290,7 +290,7 @@ fn StatsComponent(
 #[component]
 fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl IntoView {
     view! { cx,
-        <div class="px-4 sm:px-6 lg:px-8 overflow-auto">
+        <div class="px-4 sm:px-6 lg:px-8">
             <div class="sm:flex sm:items-center">
                 <div class="sm:flex-auto">
                     <h1 class="text-base font-semibold leading-6 text-gray-900">"Unmatched bets"</h1>
@@ -303,15 +303,15 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                         <tr>
                             <th
                                 scope="col"
-                                class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0"
-                            >
-                                "Side"
-                            </th>
-                            <th
-                                scope="col"
                                 class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell"
                             >
                                 "Tick"
+                            </th>
+                            <th
+                                scope="col"
+                                class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0"
+                            >
+                                "Side"
                             </th>
                             <th
                                 scope="col"
@@ -319,42 +319,33 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                             >
                                 "Size"
                             </th>
-                            <th
-                                scope="col"
-                                class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                                "Bet id"
-                            </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
                         {move || {
                             let mut res = trader_orders()
                                 .unmatched_orders
-                                .iter()
-                                .map(|(req_id, order)| {
+                                .values()
+                                .map(|(order)| {
                                     (
                                         view! { cx,
                                             <tr>
+                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                                                {order.tick.0.to_string()}
+                                            </td>
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                                                     {order.side.to_string()}
                                                 </td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
-                                                    {order.tick.0.to_string()}
-                                                </td>
-                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
                                                     {order.size.0.to_string()}
-                                                </td>
-                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
-                                                    {req_id.0.to_string()}
                                                 </td>
                                             </tr>
                                         },
-                                        (req_id.clone(), order.clone()),
+                                        (order.clone()),
                                     )
                                 })
                                 .collect::<Vec<_>>();
-                            res.sort_by(|(_, (req_id1, order1)), (_, (req_id2, order2))| {
+                            res.sort_by(|(_, order1), (_, order2)| {
                                 order1
                                     .tick
                                     .cmp(&order2.tick)
@@ -363,7 +354,7 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                                             .side
                                             .cmp(&order2.side)
                                             .then_with(|| {
-                                                order1.size.cmp(&order2.size).then_with(|| req_id1.cmp(req_id2))
+                                                order1.size.cmp(&order2.size)
                                             })
                                     })
                             });
@@ -386,8 +377,8 @@ fn LadderTable(
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="mt-8 flow-root">
                 <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                        <table class="table-fixed min-w-full divide-y divide-gray-300">
+                    <div class="h-96 overflow-y-auto">
+                        <table class="table-fixed w-full divide-y divide-gray-300">
                             <thead>
                                 <tr class="divide-x divide-gray-200">
                                     <th

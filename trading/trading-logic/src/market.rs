@@ -36,8 +36,8 @@ pub mod messages {
     #[derive(Message, Debug, Clone)]
     #[rtype(result = "()")]
     pub struct OrderStateUpdate {
-        pub open_orders: HashMap<RequestId, Order>,
-        pub matched_orders: HashMap<RequestId, Order>,
+        pub open_orders: HashMap<Tick, Order>,
+        pub matched_orders: HashMap<Tick, Order>,
     }
 
     #[derive(Message, Debug, Clone)]
@@ -58,8 +58,8 @@ pub struct MarketActor {
 struct InternalTraderState {
     recp_tick_update: Recipient<messages::TickDataUpdate>,
     recp_order_update: Recipient<messages::OrderStateUpdate>,
-    open_orders: HashMap<RequestId, Order>,
-    matched_orders: HashMap<RequestId, Order>,
+    open_orders: HashMap<Tick, Order>,
+    matched_orders: HashMap<Tick, Order>,
 }
 
 impl Actor for MarketActor {
@@ -75,8 +75,15 @@ impl Actor for MarketActor {
                 val.clear();
             }
 
+            let new_balance = Tick(dec!(1.51));
+            if let Some(obr) = act.order_book.get_mut(&new_balance) {
+                let new_balance = compress_order_book_range(obr);
+                act.update_listeners(
+                    messages::TickDataUpdate::NewLatestMatch(new_balance),
+                );
+            }
             let update_msg = act.tick_data_refresh_msg();
-            act.update_listeners(update_msg, ctx);
+            act.update_listeners(update_msg);
 
             for (_, trader) in act.traders.iter() {
                 let update_msg = messages::OrderStateUpdate {
@@ -98,6 +105,7 @@ impl Handler<messages::PlaceOrder> for MarketActor {
             return;
         };
 
+        let tick = msg.order.tick.clone();
         if let Some(obr) = self.order_book.get_mut(&msg.order.tick) {
             let affected_traders = match msg.order.side {
                 trading_types::common::Side::Back => Self::match_orders(
@@ -120,21 +128,20 @@ impl Handler<messages::PlaceOrder> for MarketActor {
             if !affected_traders.is_empty() {
                 self.update_listeners(
                     messages::TickDataUpdate::NewLatestMatch(tick_data.clone()),
-                    _ctx,
                 );
             }
-            self.update_listeners(messages::TickDataUpdate::SingleUpdate(tick_data), _ctx);
+            self.update_listeners(messages::TickDataUpdate::SingleUpdate(tick_data));
 
             // Send individual order updates to affected traders
-            for (trader_id, request_id, new_size) in affected_traders {
+            for (trader_id, new_size) in affected_traders {
                 let Some(trader) = self.traders.get_mut(&trader_id) else {
                     continue;
                 };
 
                 if new_size.0 == dec!(0) {
-                    trader.open_orders.remove(&request_id);
+                    trader.open_orders.remove(&tick);
                 } else {
-                    trader.open_orders.get_mut(&request_id).map(|order| {
+                    trader.open_orders.get_mut(&tick).map(|order| {
                         order.size = new_size;
                     });
                 }
@@ -156,11 +163,10 @@ impl MarketActor {
         matched_aggregate: &mut Size,
         aligned_orders: &mut Vec<(TraderId, RequestId, Size)>,
         trader: &mut InternalTraderState,
-    ) -> Vec<(TraderId, RequestId, Size)> {
-        trader.open_orders.insert(order.request_id.clone(), order.order.clone());
+    ) -> Vec<(TraderId, Size)> {
+        trader.open_orders.insert(order.order.tick.clone(), order.order.clone());
 
         let mut affected_traders = vec![];
-        let original_aligned = order.clone();
         let mut leftover_amount = order.order.size.clone();
         let mut matched_amount = Size(dec!(0));
 
@@ -185,7 +191,6 @@ impl MarketActor {
             }
             affected_traders.push((
                 opposing_trader_id.clone(),
-                opposing_req_id.clone(),
                 opposing_order_size.clone(),
             ));
 
@@ -197,13 +202,21 @@ impl MarketActor {
 
         if leftover_amount.0 > dec!(0) {
             aligned_orders.push((order.trader.clone(), order.request_id.clone(), leftover_amount));
-            trader.open_orders.insert(order.request_id.clone(), order.order.clone());
+            if let Some(trader) = trader.open_orders.get_mut(&order.order.tick) {
+                trader.size = leftover_amount;
+            } else {
+                trader.open_orders.insert(order.order.tick.clone(), Order { size: leftover_amount, ..order.order.clone() });
+            }
         }
         if matched_amount.0 > dec!(0) {
-            trader.matched_orders.insert(
-                order.request_id.clone(),
-                Order { size: matched_amount, ..original_aligned.order.clone() },
-            );
+            if let Some(trader) = trader.matched_orders.get_mut(&order.order.tick) {
+                trader.size.0 += matched_amount.0;
+            } else {
+                trader.matched_orders.insert(
+                    order.order.tick.clone(),
+                    Order { size: matched_amount, ..order.order.clone() },
+                );
+            }
         }
 
         let update_msg = messages::OrderStateUpdate {
@@ -276,7 +289,7 @@ impl MarketActor {
         Self { order_book, traders: HashMap::new(), bots: Vec::new() }
     }
 
-    pub fn update_listeners(&self, msg: messages::TickDataUpdate, _ctx: &mut Context<Self>) {
+    pub fn update_listeners(&self, msg: messages::TickDataUpdate) {
         for (_, trader) in self.traders.iter() {
             trader.recp_tick_update.do_send(msg.clone());
         }

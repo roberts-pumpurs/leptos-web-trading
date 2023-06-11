@@ -6,5 +6,8 @@ module.exports = {
   theme: {
     extend: {},
   },
+  corePlugins: {
+    overflowY: true,
+  },
   plugins: [require('@tailwindcss/forms')],
 };
