@@ -77,6 +77,14 @@ impl Actor for MarketActor {
 
             let update_msg = act.tick_data_refresh_msg();
             act.update_listeners(update_msg, ctx);
+
+            for (_, trader) in act.traders.iter() {
+                let update_msg = messages::OrderStateUpdate {
+                    open_orders: trader.open_orders.clone(),
+                    matched_orders: trader.matched_orders.clone(),
+                };
+                trader.recp_order_update.do_send(update_msg);
+            }
         });
     }
 }
@@ -225,6 +233,12 @@ impl Handler<messages::RegisterTrader> for MarketActor {
             open_orders: HashMap::new(),
             matched_orders: HashMap::new(),
         };
+
+        let update_msg = messages::OrderStateUpdate {
+            open_orders: state.open_orders.clone(),
+            matched_orders: state.matched_orders.clone(),
+        };
+        state.recp_order_update.do_send(update_msg);
         self.traders.insert(msg.0, state);
     }
 }

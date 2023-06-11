@@ -200,6 +200,7 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     view! { cx,
         <div class="HomeView">
             <StatsComponent latency=latency trader_orders=trader_orders/>
+            <OrderInformation trader_orders=trader_orders/>
             <LadderTable ladder=ladder ws_client_sender=ws_client_sender/>
         </div>
     }
@@ -232,7 +233,7 @@ fn StatsComponent(
     view! { cx,
         <div>
             <h3 class="text-base font-semibold leading-6 text-gray-900">"Stats"</h3>
-            <dl class="mt-5 grid grid-cols-1 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-6 md:divide-x md:divide-y-0">
+            <dl class="mt-5 grid grid-cols-3 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
                 <div class="px-4 py-5 sm:p-6">
                     <dt class="text-base font-normal text-gray-900">"WS Latency"</dt>
                     <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
@@ -282,56 +283,95 @@ fn StatsComponent(
                     </dd>
                 </div>
             </dl>
-            <dl class="mt-1 grid grid-cols-1 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
-                <div class="px-4 py-5 sm:p-6">
-                    <dt class="text-base font-normal text-gray-900">"WS Latency"</dt>
-                    <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
-                        <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
-                            {move || {
-                                latency()
-                                    .map(|x| {
-                                        view! { cx, <span>{x.ms} "ms"</span> }
+        </div>
+    }
+}
+
+#[component]
+fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl IntoView {
+    view! { cx,
+        <div class="px-4 sm:px-6 lg:px-8 overflow-auto">
+            <div class="sm:flex sm:items-center">
+                <div class="sm:flex-auto">
+                    <h1 class="text-base font-semibold leading-6 text-gray-900">"Unmatched bets"</h1>
+                    <p class="mt-2 text-sm text-gray-700">"A list of all unmatched orders"</p>
+                </div>
+            </div>
+            <div class="-mx-4 mt-8 sm:-mx-0">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead>
+                        <tr>
+                            <th
+                                scope="col"
+                                class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0"
+                            >
+                                "Side"
+                            </th>
+                            <th
+                                scope="col"
+                                class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell"
+                            >
+                                "Tick"
+                            </th>
+                            <th
+                                scope="col"
+                                class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell"
+                            >
+                                "Size"
+                            </th>
+                            <th
+                                scope="col"
+                                class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                                "Bet id"
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 bg-white">
+                        {move || {
+                            let mut res = trader_orders()
+                                .unmatched_orders
+                                .iter()
+                                .map(|(req_id, order)| {
+                                    (
+                                        view! { cx,
+                                            <tr>
+                                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                                                    {order.side.to_string()}
+                                                </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                                                    {order.tick.0.to_string()}
+                                                </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                                                    {order.size.0.to_string()}
+                                                </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                                                    {req_id.0.to_string()}
+                                                </td>
+                                            </tr>
+                                        },
+                                        (req_id.clone(), order.clone()),
+                                    )
+                                })
+                                .collect::<Vec<_>>();
+                            res.sort_by(|(_, (req_id1, order1)), (_, (req_id2, order2))| {
+                                order1
+                                    .tick
+                                    .cmp(&order2.tick)
+                                    .then_with(|| {
+                                        order1
+                                            .side
+                                            .cmp(&order2.side)
+                                            .then_with(|| {
+                                                order1.size.cmp(&order2.size).then_with(|| req_id1.cmp(req_id2))
+                                            })
                                     })
-                                    .unwrap_or_else(|| {
-                                        view! { cx, <span>"..Connecting"</span> }
-                                    })
-                            }}
-                        </div>
-                    </dd>
-                </div>
-                <div class="px-4 py-5 sm:p-6">
-                    <dt class="text-base font-normal text-gray-900">"Unmatched backs"</dt>
-                    <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
-                        <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
-                            {move || {
-                                let orders = trader_orders();
-                                let matched = orders
-                                    .unmatched_orders
-                                    .iter()
-                                    .filter(|(_, x)| x.side == Side::Back)
-                                    .fold(dec!(0), |acc, (_, x)| acc + x.size.0);
-                                view! { cx, <span>{matched.to_string()} " €"</span> }
-                            }}
-                        </div>
-                    </dd>
-                </div>
-                <div class="px-4 py-5 sm:p-6">
-                    <dt class="text-base font-normal text-gray-900">"Unmatched lays"</dt>
-                    <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
-                        <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
-                            {move || {
-                                let orders = trader_orders();
-                                let matched = orders
-                                    .unmatched_orders
-                                    .iter()
-                                    .filter(|(_, x)| x.side == Side::Lay)
-                                    .fold(dec!(0), |acc, (_, x)| acc + x.size.0);
-                                view! { cx, <span>{matched.to_string()} " €"</span> }
-                            }}
-                        </div>
-                    </dd>
-                </div>
-            </dl>
+                            });
+                            res.into_iter().map(|(x, _)| x).collect::<Vec<_>>()
+                        }}
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 }
