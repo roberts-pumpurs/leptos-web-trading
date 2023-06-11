@@ -23,6 +23,7 @@ gloo-timers.workspace = true
 futures.workspace = true
 http.workspace = true
 cfg-if.workspace = true
+uuid.workspace = true
 thiserror.workspace = true
 
 serde.workspace = true

@@ -155,6 +155,7 @@ dependencies = [
  "state",
  "thiserror",
  "trading-types",
+ "uuid",
 ]
 
 [[package]]
@@ -969,8 +970,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c85e1d9ab2eadba7e5040d4e09cbd6d072b76a557ad64e797c2cb9d4da21d7e4"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3015,6 +3018,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "345444e32442451b267fc254ae85a209c64be56d2890e601a0c37ff0c3c5ecd2"
 dependencies = [
  "getrandom",
+ "wasm-bindgen",
 ]
 
 [[package]]

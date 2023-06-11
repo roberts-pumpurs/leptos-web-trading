@@ -2,10 +2,12 @@ use futures::{FutureExt, SinkExt, StreamExt};
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
 use gloo_timers;
+use leptos::ev::SubmitEvent;
+use leptos::html::Input;
 use leptos::*;
 use leptos_router::*;
 use rust_decimal_macros::dec;
-use trading_types::common::Tick;
+use trading_types::common::{Order, RequestId, Side, Size, Tick};
 use trading_types::from_server::{Latency, ServerMessage, TickData};
 use trading_types::from_trader::TraderMessage;
 
@@ -157,7 +159,7 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
     view! { cx,
         <div class="HomeView">
             <StatsComponent latency=latency/>
-            <LadderTable ladder=ladder/>
+            <LadderTable ladder=ladder ws_client_sender=ws_client_sender/>
         </div>
     }
 }
@@ -208,7 +210,11 @@ fn StatsComponent(cx: Scope, latency: ReadSignal<Option<Latency>>) -> impl IntoV
 }
 
 #[component]
-fn LadderTable(cx: Scope, ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>) -> impl IntoView {
+fn LadderTable(
+    cx: Scope,
+    ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>,
+    ws_client_sender: Memo<Option<SenderWrapper>>,
+) -> impl IntoView {
     let ladder = create_memo(cx, move |_| {
         ladder().map(|(ladder, last_traded)| {
             let ladder = ladder;
@@ -273,7 +279,7 @@ fn LadderTable(cx: Scope, ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>) -> 
                                                 each=move || extracted_ladder.clone().into_iter().enumerate()
                                                 key=|(idx, _data)| { *idx }
                                                 view=move |cx, (_idx, (row, is_last_traded))| {
-                                                    view! { cx, <TickRow row=row is_last_traded=is_last_traded/> }
+                                                    view! { cx, <TickRow row=row is_last_traded=is_last_traded ws_client_sender=ws_client_sender/> }
                                                 }
                                             />
                                         }
@@ -302,11 +308,57 @@ fn LadderTable(cx: Scope, ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>) -> 
 }
 
 #[component]
-fn TickRow(cx: Scope, row: TickData, is_last_traded: bool) -> impl IntoView {
+fn TickRow(
+    cx: Scope,
+    row: TickData,
+    is_last_traded: bool,
+    ws_client_sender: Memo<Option<SenderWrapper>>,
+) -> impl IntoView {
+    let input_element_back: NodeRef<Input> = create_node_ref(cx);
+    let input_element_lay: NodeRef<Input> = create_node_ref(cx);
+
+    let tick = row.tick.clone();
+    let on_submit_core = move |node_ref: NodeRef<Input>, side: Side| {
+        // here, we'll extract the value from the input
+        let Some(value) = node_ref() else {
+            return;
+        };
+        let value = value.value();
+        let Ok(value) = value.parse::<rust_decimal::Decimal>() else {
+            return;
+        };
+        let order = Order { tick, size: Size(value), side };
+
+        let sender = ws_client_sender();
+        if let Some(mut sender) = sender {
+            use uuid::Uuid;
+            let request_id = RequestId(Uuid::new_v4().to_string());
+            spawn_local(async move {
+                let _ =
+                    sender.sender.send(Some(TraderMessage::PlaceOrder(request_id, order))).await;
+            });
+        };
+    };
+    let on_submit_back = move |ev: SubmitEvent| {
+        // stop the page from reloading!
+        ev.prevent_default();
+
+        on_submit_core(input_element_back, Side::Back);
+    };
+
+    let on_submit_lay = move |ev: SubmitEvent| {
+        // stop the page from reloading!
+        ev.prevent_default();
+
+        on_submit_core(input_element_lay, Side::Lay);
+    };
+
     view! { cx,
         <tr class="divide-x divide-gray-200">
             <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
-                <input type="number" class="w-full"/>
+                <form on:submit=on_submit_back>
+                    <input type="number" class="w-full" node_ref=input_element_back/>
+                </form>
             </td>
             <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
                 {row.back.0.to_string()}
@@ -328,7 +380,9 @@ fn TickRow(cx: Scope, row: TickData, is_last_traded: bool) -> impl IntoView {
                 {row.lay.0.to_string()}
             </td>
             <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
-                <input type="number" class="w-full"/>
+                <form on:submit=on_submit_lay>
+                    <input type="number" class="w-full" node_ref=input_element_lay/>
+                </form>
             </td>
             <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
                 {(row.lay.0 + row.back.0).to_string()}
