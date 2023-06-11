@@ -15,6 +15,7 @@
 
 ```bash
 pnpm install
+rustup target add wasm32-unknown-unknown
 cargo install cargo-make
 cargo install --locked cargo-leptos
 ```
