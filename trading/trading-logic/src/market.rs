@@ -33,6 +33,7 @@ pub mod messages {
     pub enum TickDataUpdate {
         SetRefresh(Vec<TickData>),
         SingleUpdate(TickData),
+        NewLatestMatch(TickData),
     }
 }
 
@@ -57,6 +58,10 @@ impl Actor for MarketActor {
             for (_key, val) in act.order_book.iter_mut() {
                 val.clear();
             }
+            for (_key, val) in act.subscribers.iter_mut() {
+                val.clear();
+            }
+
             let update_msg = act.tick_data_refresh_msg();
             act.update_listeners(update_msg, ctx);
         });
@@ -100,6 +105,14 @@ impl Handler<messages::PlaceOrder> for MarketActor {
                     matched_opposing
                 }
             };
+            let tick_data = compress_order_book_range(obr);
+            if !matched_opposing.is_empty() {
+                self.update_listeners(
+                    messages::TickDataUpdate::NewLatestMatch(tick_data.clone()),
+                    _ctx,
+                );
+            }
+
             for (trader_id, request_id, leftover_size, fully_matched) in matched_opposing {
                 if let Some(v) = self.subscribers.get_mut(&trader_id) {
                     if fully_matched {
@@ -114,8 +127,6 @@ impl Handler<messages::PlaceOrder> for MarketActor {
                 }
                 // TODO Update the trader with the info that his bets have been matched
             }
-
-            let tick_data = compress_order_book_range(obr);
             self.update_listeners(messages::TickDataUpdate::SingleUpdate(tick_data), _ctx);
         }
     }
@@ -243,5 +254,11 @@ impl OrderBookRange {
     fn clear(&mut self) {
         self.back.clear();
         self.lay.clear();
+    }
+}
+impl InternalTraderState {
+    fn clear(&mut self) {
+        self.matched_orders.clear();
+        self.open_orders.clear();
     }
 }

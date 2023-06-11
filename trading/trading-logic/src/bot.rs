@@ -11,10 +11,7 @@ use crate::market::MarketActor;
 pub struct BotActor {
     trader_id: TraderId,
     market: Addr<MarketActor>,
-    next_placement_in: Duration,
-    next_placement_size: Size,
-    next_placement_side: Side,
-    next_placement_tick: Tick,
+    next_placement_order: Order,
     random: rand::rngs::ThreadRng,
 }
 
@@ -23,19 +20,16 @@ impl BotActor {
         let random = rand::thread_rng();
         let mut instance = Self {
             trader_id,
+            next_placement_order: Order {
+                size: Size(dec!(2.0)),
+                side: Side::Back,
+                tick: Tick(dec!(1.51)),
+            },
             market,
-            next_placement_side: Side::Back,
             random,
-            next_placement_in: Duration::from_millis(300),
-            next_placement_size: Size(dec!(2.0)),
-            next_placement_tick: Tick(dec!(1.51)),
         };
-        instance.roll_side();
+        instance.roll_new_order(instance.next_placement_order.tick);
         instance
-    }
-
-    fn roll_side(&mut self) {
-        self.next_placement_side = if self.random.gen_bool(0.5) { Side::Back } else { Side::Lay };
     }
 }
 
@@ -48,7 +42,8 @@ impl Actor for BotActor {
             ctx.address().recipient(),
         ));
 
-        ctx.notify_later(PlaceNextBet, self.next_placement_in);
+        let next_placement_in = Duration::from_millis(self.random.gen_range(500..2000));
+        ctx.notify_later(PlaceNextBet, next_placement_in);
     }
 }
 
@@ -57,28 +52,11 @@ impl Handler<TickDataUpdate> for BotActor {
 
     fn handle(&mut self, msg: TickDataUpdate, _ctx: &mut Context<Self>) -> Self::Result {
         match msg {
-            TickDataUpdate::SingleUpdate(msg) => {
-                let next_placement_size = self.random.gen_range(2..1500);
-                self.next_placement_size = Size(rust_decimal::Decimal::new(next_placement_size, 0));
-
-                let next_placement_tick_diff = self.random.gen_range(-2..=2);
-                let next_placement_tick = msg
-                    .tick
-                    .0
-                    .checked_add(rust_decimal::Decimal::new(next_placement_tick_diff, 2))
-                    .unwrap();
-
-                if next_placement_tick > dec!(2.00) {
-                    self.next_placement_tick = Tick(dec!(2.00));
-                } else if next_placement_tick < dec!(1.01) {
-                    self.next_placement_tick = Tick(dec!(1.01));
-                } else {
-                    self.next_placement_tick = Tick(next_placement_tick);
-                }
-
-                self.roll_side();
+            TickDataUpdate::NewLatestMatch(msg) => {
+                self.roll_new_order(msg.tick);
             }
             TickDataUpdate::SetRefresh(_msg) => (),
+            TickDataUpdate::SingleUpdate(_) => (),
         };
     }
 }
@@ -90,18 +68,48 @@ impl Handler<PlaceNextBet> for BotActor {
         let msg = PlaceOrder {
             request_id: RequestId(nanoid::nanoid!()),
             trader: self.trader_id.clone(),
-            order: Order {
-                tick: self.next_placement_tick,
-                size: self.next_placement_size,
-                side: self.next_placement_side,
-            },
+            order: self.next_placement_order.clone(),
+        };
+        self.market.do_send(msg);
+        self.roll_new_order(self.next_placement_order.tick);
+
+        // Schedule next placement
+        let next_placement_in = Duration::from_millis(self.random.gen_range(500..2000));
+        ctx.notify_later(PlaceNextBet, next_placement_in);
+    }
+}
+
+impl BotActor {
+    fn roll_new_order(&mut self, prev_balance: Tick) {
+        let next_placement_side = if self.random.gen_bool(0.5) { Side::Back } else { Side::Lay };
+
+        let next_placement_size = self.random.gen_range(2..300);
+        let next_placement_size = Size(rust_decimal::Decimal::new(next_placement_size, 0));
+
+        let next_placement_tick_diff = {
+            match next_placement_side {
+                Side::Back => self.random.gen_range(-2..=0),
+                Side::Lay => self.random.gen_range(0..=2),
+            }
+        };
+        let next_placement_tick = prev_balance
+            .0
+            .checked_add(rust_decimal::Decimal::new(next_placement_tick_diff, 2))
+            .unwrap();
+
+        let next_placement_tick = if next_placement_tick > dec!(2.00) {
+            Tick(dec!(2.00))
+        } else if next_placement_tick < dec!(1.01) {
+            Tick(dec!(1.01))
+        } else {
+            Tick(next_placement_tick)
         };
 
-        self.next_placement_in =
-            Duration::from_millis(self.random.gen_range(100..200) + self.random.gen_range(0..1000));
-        ctx.notify_later(PlaceNextBet, self.next_placement_in);
-
-        self.market.do_send(msg);
+        self.next_placement_order = Order {
+            tick: next_placement_tick,
+            size: next_placement_size,
+            side: next_placement_side,
+        };
     }
 }
 

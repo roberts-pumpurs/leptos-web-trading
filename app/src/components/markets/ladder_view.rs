@@ -117,6 +117,14 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                                                             x.tick_data.update(|prev| {
                                                                 *prev = new_value.clone();
                                                             });
+                                                        }
+                                                    });
+                                                });
+                                            },
+                                            ServerMessage::NewLatestMatch(new_value) => {
+                                                set_ladder.update(|ladder| {
+                                                    ladder.iter_mut().for_each(|x| {
+                                                        if x.tick_data.get_untracked().tick == new_value.tick {
                                                             x.is_last_traded.update(|prev| {
                                                                 *prev = true;
                                                             });

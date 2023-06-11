@@ -175,6 +175,7 @@ impl Handler<TickDataUpdate> for WsActor {
         let msg = match msg {
             TickDataUpdate::SetRefresh(msg) => ServerMessage::TickSetWhole(msg),
             TickDataUpdate::SingleUpdate(msg) => ServerMessage::TickUpdate(msg),
+            TickDataUpdate::NewLatestMatch(msg) => ServerMessage::NewLatestMatch(msg),
         };
         self.send_server_message(msg, ctx);
     }

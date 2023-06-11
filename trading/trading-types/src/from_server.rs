@@ -8,6 +8,7 @@ pub enum ServerMessage {
     ConnectionInfo(Latency),
     TickSetWhole(Vec<TickData>),
     TickUpdate(TickData),
+    NewLatestMatch(TickData),
     OrderAccepted(RequestId),
     OrderRejected(RequestId, String),
 }
