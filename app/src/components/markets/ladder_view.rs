@@ -209,6 +209,16 @@ fn StatsComponent(cx: Scope, latency: ReadSignal<Option<Latency>>) -> impl IntoV
 
 #[component]
 fn LadderTable(cx: Scope, ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>) -> impl IntoView {
+    let ladder = create_memo(cx, move |_| {
+        ladder().map(|(ladder, last_traded)| {
+            let ladder = ladder;
+            let ladder = ladder.into_iter().map(move |data| {
+                let is_last_traded = data.tick.0 == last_traded.0;
+                (data, is_last_traded)
+            });
+            ladder.collect::<Vec<_>>()
+        })
+    });
     view! { cx,
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="mt-8 flow-root">
@@ -256,59 +266,73 @@ fn LadderTable(cx: Scope, ladder: ReadSignal<Option<(Vec<TickData>, Tick)>>) -> 
                                 </tr>
                             </thead>
                             <tbody class="text-center divide-y divide-gray-200 bg-white ">
-                                <For
-                                    each=move || {
-                                        if let Some((data, last_traded)) = ladder() {
-                                            data.into_iter().map(move |data| {
-                                                let is_last_traded = data.tick.0 == last_traded.0;
-                                                (data, is_last_traded)}).collect()
-                                        } else {
-                                            Vec::new()
-                                        }
-                                    }
-                                    key=|(data, is_last_traded)| {
-                                        format!("{}-{}-{}-{:?}", data.tick.0, data.back.0, data.lay.0, is_last_traded)
-                                    }
-                                    view=move |cx, (row, is_last_traded)| {
+                                {move || {
+                                    if let Some(extracted_ladder) = ladder() {
                                         view! { cx,
-                                            <tr class="divide-x divide-gray-200">
-                                                <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
-                                                    <input type="number" class="w-full"/>
-                                                </td>
-                                                <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
-                                                    {row.back.0.to_string()}
-                                                </td>
-                                                {if is_last_traded {
-                                                    view! { cx,
-                                                        <td class="w-1/6 text-center whitespace-nowrap text-sm text-black bg-slate-100">
-                                                        {row.tick.0.to_string()}
-                                                        </td>
-                                                    }
-                                                } else {
-                                                    view! { cx,
-                                                        <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
-                                                            {row.tick.0.to_string()}
-                                                        </td>
-                                                    }
-                                                }}
-                                                <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
-                                                    {row.lay.0.to_string()}
-                                                </td>
-                                                <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
-                                                    <input type="number" class="w-full"/>
-                                                </td>
-                                                <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
-                                                    {(row.lay.0 + row.back.0).to_string()}
+                                            <For
+                                                each=move || extracted_ladder.clone().into_iter().enumerate()
+                                                key=|(idx, _data)| { *idx }
+                                                view=move |cx, (_idx, (row, is_last_traded))| {
+                                                    view! { cx, <TickRow row=row is_last_traded=is_last_traded/> }
+                                                }
+                                            />
+                                        }
+                                            .into_view(cx)
+                                    } else {
+                                        view! { cx,
+                                            <tr class="bg-white">
+                                                <td
+                                                    class="px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                                                    colspan="6"
+                                                >
+                                                    "No data"
                                                 </td>
                                             </tr>
                                         }
+                                            .into_view(cx)
                                     }
-                                />
+                                }}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
+    }
+}
+
+#[component]
+fn TickRow(cx: Scope, row: TickData, is_last_traded: bool) -> impl IntoView {
+    view! { cx,
+        <tr class="divide-x divide-gray-200">
+            <td class="w-1/6 whitespace-nowrap text-sm text-gray-500 sm:pl-0">
+                <input type="number" class="w-full"/>
+            </td>
+            <td class="w-1/6 whitespace-nowrap text-sm bg-blue-200 text-blue-950">
+                {row.back.0.to_string()}
+            </td>
+            {if is_last_traded {
+                view! { cx,
+                    <td class="w-1/6 text-center whitespace-nowrap text-sm text-black bg-slate-100">
+                        {row.tick.0.to_string()}
+                    </td>
+                }
+            } else {
+                view! { cx,
+                    <td class="w-1/6 text-center whitespace-nowrap text-sm text-white bg-slate-500">
+                        {row.tick.0.to_string()}
+                    </td>
+                }
+            }}
+            <td class="w-1/6 whitespace-nowrap text-sm bg-red-200 text-red-950">
+                {row.lay.0.to_string()}
+            </td>
+            <td class="w-1/6 whitespace-nowrap text-sm text-gray-500">
+                <input type="number" class="w-full"/>
+            </td>
+            <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
+                {(row.lay.0 + row.back.0).to_string()}
+            </td>
+        </tr>
     }
 }
