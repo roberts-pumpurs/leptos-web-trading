@@ -145,8 +145,9 @@ impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
     fn handle(&mut self, item: Result<WsMsg, anyhow::Error>, ctx: &mut Context<WsActor>) {
         if let Ok(WsMsg(Ok(msg))) = item {
             match msg {
-                TraderMessage::PlaceOrder(_req_id, order) => {
+                TraderMessage::PlaceOrder(req_id, order) => {
                     self.market.do_send(trading_logic::market::messages::PlaceOrder {
+                        request_id: req_id,
                         trader: self.trader_id.clone(),
                         order,
                     });

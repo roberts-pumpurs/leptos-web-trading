@@ -3,7 +3,7 @@ use std::time::Duration;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Message};
 use rand::Rng;
 use rust_decimal_macros::dec;
-use trading_types::common::{Order, Side, Size, Tick, TraderId};
+use trading_types::common::{Order, Side, Size, Tick, TraderId, RequestId};
 
 use crate::market::messages::{PlaceOrder, TickDataUpdate};
 use crate::market::MarketActor;
@@ -88,6 +88,7 @@ impl Handler<PlaceNextBet> for BotActor {
 
     fn handle(&mut self, _msg: PlaceNextBet, ctx: &mut Context<Self>) -> Self::Result {
         let msg = PlaceOrder {
+            request_id: RequestId(nanoid::nanoid!()),
             trader: self.trader_id.clone(),
             order: Order {
                 tick: self.next_placement_tick,
@@ -107,18 +108,3 @@ impl Handler<PlaceNextBet> for BotActor {
 #[derive(Debug, Message)]
 #[rtype(result = "()")]
 struct PlaceNextBet;
-
-#[test]
-fn testss() {
-    let mut random = rand::thread_rng();
-    // let current_tick = Tick(dec!(1.51));
-    let next_placement_tick_diff = random.gen_range(-2..2);
-    // let next_placement_tick = current_tick
-    //                 .0
-    //                 .saturating_add(rust_decimal::Decimal::new(next_placement_tick_diff, 2));
-
-    // panic!("{}", next_placement_tick);
-
-    let val = rust_decimal::Decimal::new(next_placement_tick_diff, 2);
-    panic!("test {}", val);
-}
