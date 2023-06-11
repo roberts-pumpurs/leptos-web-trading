@@ -64,7 +64,7 @@ thiserror = "1.0"
 tokio = { version = "1.26", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 tower-http = { version = "0.4", features = ["full"] }
-wasm-bindgen = "=0.2.84"
+wasm-bindgen = "=0.2.86"
 gloo-net = { version = "0.2" }
 gloo-timers = {version = "0.2", features = ["futures"] }
 ciborium = "0.2.1"
