@@ -114,7 +114,17 @@ fn LadderViewInternal(cx: Scope, id: Memo<u32>) -> impl IntoView {
                                                         is_last_traded,
                                                     }
                                                 }).collect::<Vec<_>>();
-                                                set_ladder(res);
+                                                set_ladder.update(|ladder| {
+                                                    if ladder.len() != res.len() {
+                                                        *ladder = res;
+                                                    } else {
+                                                        ladder.iter_mut().zip(res.iter()).for_each(|(prev, new)| {
+                                                            prev.tick_data.update(|prev| {
+                                                                *prev = new.tick_data.get_untracked();
+                                                            });
+                                                        });
+                                                    }
+                                                });
                                             },
                                             ServerMessage::TickUpdate(new_value) => {
                                                 set_ladder.update(|ladder| {
@@ -293,7 +303,9 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="sm:flex sm:items-center">
                 <div class="sm:flex-auto">
-                    <h1 class="text-base font-semibold leading-6 text-gray-900">"Unmatched bets"</h1>
+                    <h1 class="text-base font-semibold leading-6 text-gray-900">
+                        "Unmatched bets"
+                    </h1>
                     <p class="mt-2 text-sm text-gray-700">"A list of all unmatched orders"</p>
                 </div>
             </div>
@@ -326,13 +338,13 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                             let mut res = trader_orders()
                                 .unmatched_orders
                                 .values()
-                                .map(|(order)| {
+                                .map(|order| {
                                     (
                                         view! { cx,
                                             <tr>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
-                                                {order.tick.0.to_string()}
-                                            </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                                                    {order.tick.0.to_string()}
+                                                </td>
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                                                     {order.side.to_string()}
                                                 </td>
@@ -353,9 +365,7 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                                         order1
                                             .side
                                             .cmp(&order2.side)
-                                            .then_with(|| {
-                                                order1.size.cmp(&order2.size)
-                                            })
+                                            .then_with(|| { order1.size.cmp(&order2.size) })
                                     })
                             });
                             res.into_iter().map(|(x, _)| x).collect::<Vec<_>>()

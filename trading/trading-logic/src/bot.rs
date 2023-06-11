@@ -64,7 +64,7 @@ impl Handler<TickDataUpdate> for BotActor {
 impl Handler<OrderStateUpdate> for BotActor {
     type Result = ();
 
-    fn handle(&mut self, msg: OrderStateUpdate, _ctx: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, _msg: OrderStateUpdate, _ctx: &mut Context<Self>) -> Self::Result {
         // noop
     }
 }
