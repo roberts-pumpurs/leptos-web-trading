@@ -13,6 +13,7 @@ pub struct BotActor {
     market: Addr<MarketActor>,
     next_placement_order: Order,
     random: rand::rngs::ThreadRng,
+    spawn_handle: Option<actix::SpawnHandle>,
 }
 
 impl BotActor {
@@ -23,8 +24,9 @@ impl BotActor {
             next_placement_order: Order {
                 size: Size(dec!(2.0)),
                 side: Side::Back,
-                tick: Tick(dec!(1.51)),
+                tick: Tick(dec!(1.50)),
             },
+            spawn_handle: None,
             market,
             random,
         };
@@ -51,13 +53,37 @@ impl Actor for BotActor {
 impl Handler<TickDataUpdate> for BotActor {
     type Result = ();
 
-    fn handle(&mut self, msg: TickDataUpdate, _ctx: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: TickDataUpdate, ctx: &mut Context<Self>) -> Self::Result {
         match msg {
             TickDataUpdate::NewLatestMatch(msg) => {
-                self.roll_new_order(msg.tick);
+                if self.random.gen_bool(0.5) {
+                    self.roll_new_order(msg.tick);
+                }
             }
-            TickDataUpdate::SetRefresh(_msg) => (),
-            TickDataUpdate::SingleUpdate(_) => (),
+            TickDataUpdate::SetRefresh(_msg) => {
+                if let Some(spawn_handle) = self.spawn_handle.take() {
+                    ctx.cancel_future(spawn_handle);
+                    self.roll_new_order(Tick(dec!(1.50)));
+                }
+            }
+            TickDataUpdate::SingleUpdate(msg) => {
+                if self.random.gen_bool(0.05) {
+                    let (side, size) = if msg.available_backs.0 > msg.available_lays.0 {
+                        let half_size = msg.available_lays.0 / dec!(2.0);
+                        (Side::Back, Size(half_size))
+                    } else {
+                        let half_size = msg.available_backs.0 / dec!(2.0);
+                        (Side::Lay, Size(half_size))
+                    };
+
+                    let msg = PlaceOrder {
+                        request_id: RequestId(nanoid::nanoid!()),
+                        trader: self.trader_id.clone(),
+                        order: Order { side, size, tick: msg.tick },
+                    };
+                    self.market.do_send(msg);
+                }
+            }
         };
     }
 }
@@ -83,17 +109,25 @@ impl Handler<PlaceNextBet> for BotActor {
 
         // Schedule next placement
         let next_placement_in = Duration::from_millis(self.random.gen_range(500..2000));
-        ctx.notify_later(PlaceNextBet, next_placement_in);
+        self.spawn_handle = Some(ctx.notify_later(PlaceNextBet, next_placement_in));
     }
 }
 
 impl BotActor {
     fn roll_new_order(&mut self, prev_balance: Tick) {
         let next_placement_side = if self.random.gen_bool(0.5) { Side::Back } else { Side::Lay };
+        let next_placement_size =
+            Size(rust_decimal::Decimal::new(self.random.gen_range(2..300), 0));
+        let next_placement_tick = self.gen_new_tick(next_placement_side, prev_balance);
 
-        let next_placement_size = self.random.gen_range(2..300);
-        let next_placement_size = Size(rust_decimal::Decimal::new(next_placement_size, 0));
+        self.next_placement_order = Order {
+            tick: next_placement_tick,
+            size: next_placement_size,
+            side: next_placement_side,
+        };
+    }
 
+    fn gen_new_tick(&mut self, next_placement_side: Side, prev_balance: Tick) -> Tick {
         let next_placement_tick_diff = {
             match next_placement_side {
                 Side::Back => self.random.gen_range(-2..=0),
@@ -104,20 +138,7 @@ impl BotActor {
             .0
             .checked_add(rust_decimal::Decimal::new(next_placement_tick_diff, 2))
             .unwrap();
-
-        let next_placement_tick = if next_placement_tick > dec!(2.00) {
-            Tick(dec!(2.00))
-        } else if next_placement_tick < dec!(1.01) {
-            Tick(dec!(1.01))
-        } else {
-            Tick(next_placement_tick)
-        };
-
-        self.next_placement_order = Order {
-            tick: next_placement_tick,
-            size: next_placement_size,
-            side: next_placement_side,
-        };
+        Tick(next_placement_tick)
     }
 }
 

@@ -387,64 +387,62 @@ fn LadderTable(
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="mt-8 flow-root">
                 <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div class="h-96 overflow-y-auto">
-                        <table class="table-fixed w-full divide-y divide-gray-300">
-                            <thead>
-                                <tr class="divide-x divide-gray-200">
-                                    <th
-                                        scope="col"
-                                        class="w-1/6 whitespace-nowrap py-3.5 pl-4 pr-3 text-center text-sm font-semibold text-gray-900 sm:pl-0"
-                                    >
-                                        "Lapse"
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
-                                    >
-                                        "Back"
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
-                                    >
-                                        "Odds"
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
-                                    >
-                                        "Lay"
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold text-gray-900"
-                                    >
-                                        "Lapse"
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500"
-                                    >
-                                        "Liquidity"
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-center divide-y divide-gray-200 bg-white ">
-                                {move || {
-                                    view! { cx,
-                                        <For
-                                            each=ladder
-                                            key=|val| { val.id }
-                                            view=move |cx, data| {
-                                                view! { cx, <TickRow data=data ws_client_sender=ws_client_sender/> }
-                                            }
-                                        />
-                                    }
-                                        .into_view(cx)
-                                }}
-                            </tbody>
-                        </table>
-                    </div>
+                    <table class="table-fixed w-full divide-y divide-gray-300">
+                        <thead>
+                            <tr class="divide-x divide-gray-200">
+                                <th
+                                    scope="col"
+                                    class="w-1/6 whitespace-nowrap py-3.5 pl-4 pr-3 text-center text-sm font-semibold text-gray-900 sm:pl-0"
+                                >
+                                    "Lapse"
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                >
+                                    "Back"
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                >
+                                    "Odds"
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                >
+                                    "Lay"
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold text-gray-900"
+                                >
+                                    "Lapse"
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500"
+                                >
+                                    "Liquidity"
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-center divide-y divide-gray-200 bg-white ">
+                            {move || {
+                                view! { cx,
+                                    <For
+                                        each=ladder
+                                        key=|val| { val.id }
+                                        view=move |cx, data| {
+                                            view! { cx, <TickRow data=data ws_client_sender=ws_client_sender/> }
+                                        }
+                                    />
+                                }
+                                    .into_view(cx)
+                            }}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
