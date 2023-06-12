@@ -42,13 +42,13 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </button>
                 </div>
                 <div class="hidden lg:flex lg:gap-x-12">
-                    <A href="/" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/" class="text-lg font-semibold leading-6 text-gray-900">
                         "Home"
                     </A>
-                    <A href="/market" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/market" class="text-lg font-semibold leading-6 text-gray-900">
                         "Markets"
                     </A>
-                    <A href="/community" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/community" class="text-lg font-semibold leading-6 text-gray-900">
                         "Community"
                     </A>
                 </div>
@@ -96,19 +96,19 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                             <div class="space-y-2 py-6">
                                 <A
                                     href="/"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Home"
                                 </A>
                                 <A
                                     href="/market"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Markets"
                                 </A>
                                 <A
                                     href="/community"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Community"
                                 </A>
