@@ -13,6 +13,7 @@ pub struct BotActor {
     market: Addr<MarketActor>,
     next_placement_order: Order,
     random: rand::rngs::ThreadRng,
+    spawn_handle: Option<actix::SpawnHandle>,
 }
 
 impl BotActor {
@@ -25,6 +26,7 @@ impl BotActor {
                 side: Side::Back,
                 tick: Tick(dec!(1.50)),
             },
+            spawn_handle: None,
             market,
             random,
         };
@@ -58,7 +60,11 @@ impl Handler<TickDataUpdate> for BotActor {
                     self.roll_new_order(msg.tick);
                 }
             }
-            TickDataUpdate::SetRefresh(_msg) => (),
+            TickDataUpdate::SetRefresh(_msg) => {
+                if let Some(spawn_handle) = self.spawn_handle.take() {
+                    ctx.cancel_future(spawn_handle);
+                }
+            }
             TickDataUpdate::SingleUpdate(msg) => {
                 if self.random.gen_bool(0.05) {
                     let (side, size) = if msg.available_backs.0 > msg.available_lays.0 {
@@ -72,7 +78,7 @@ impl Handler<TickDataUpdate> for BotActor {
                     let msg = PlaceOrder {
                         request_id: RequestId(nanoid::nanoid!()),
                         trader: self.trader_id.clone(),
-                        order: Order { side, size, tick: msg.tick},
+                        order: Order { side, size, tick: msg.tick },
                     };
                     self.market.do_send(msg);
                 }
@@ -102,7 +108,7 @@ impl Handler<PlaceNextBet> for BotActor {
 
         // Schedule next placement
         let next_placement_in = Duration::from_millis(self.random.gen_range(500..2000));
-        ctx.notify_later(PlaceNextBet, next_placement_in);
+        self.spawn_handle = Some(ctx.notify_later(PlaceNextBet, next_placement_in));
     }
 }
 
