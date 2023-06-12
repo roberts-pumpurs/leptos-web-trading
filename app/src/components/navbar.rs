@@ -26,7 +26,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     >
                         <span class="sr-only">"Open main menu"</span>
                         <svg
-                            class="h-6 w-6"
+                            class="h-8 w-8"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1.5"
@@ -76,7 +76,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                         >
                             <span class="sr-only">"Close menu"</span>
                             <svg
-                                class="h-6 w-6"
+                                class="h-8 w-8"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke-width="1.5"
