@@ -4,7 +4,14 @@ module.exports = {
     files: ['*.html', './app/**/*.rs'],
   },
   theme: {
-    extend: {},
+    extend: {
+      gap: {
+        '10': '7rem',
+      },
+      width: {
+        '25': '25rem'
+      }
+    },
   },
   plugins: [require('@tailwindcss/forms')],
 };
