@@ -47,7 +47,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                             <span class="sr-only">"Github"</span>
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
-                                                class="h-5 w-5"
+                                                class="h-5 w-5 text-indigo-600"
                                                 fill="currentColor"
                                                 viewBox="0 0 24 24"
                                             >
@@ -62,7 +62,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                         >
                                             <span class="sr-only">"LinkedIn"</span>
                                             <svg
-                                                class="h-5 w-5"
+                                                class="h-5 w-5 text-indigo-600"
                                                 fill="currentColor"
                                                 viewBox="0 0 20 20"
                                                 aria-hidden="true"
@@ -99,9 +99,9 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                             class="text-gray-400 hover:text-gray-500"
                                         >
                                             <span class="sr-only">"Telegram"</span>
-                                            <dt class="flex items-center gap-x-2 text-sm font-semibold leading-7">
+                                            <dt class="flex items-center text-indigo-600 gap-x-2 text-sm font-semibold leading-7">
                                                 <svg
-                                                    class="h-5 w-5"
+                                                    class="h-5 w-5 text-indigo-600"
                                                     aria-hidden="true"
                                                     fill="currentColor"
                                                     viewBox="0 0 24 24"
@@ -137,9 +137,9 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                             class="text-gray-400 hover:text-gray-500"
                                         >
                                             <span class="sr-only">"Telegram"</span>
-                                            <dt class="flex items-center gap-x-2 text-sm font-semibold leading-7">
+                                            <dt class="flex items-center text-indigo-600 gap-x-2 text-sm font-semibold leading-7">
                                                 <svg
-                                                    class="h-5 w-5"
+                                                    class="h-5 w-5 text-indigo-600"
                                                     fill="currentColor"
                                                     viewbox="0 0 24 24"
                                                     version="1.1"
