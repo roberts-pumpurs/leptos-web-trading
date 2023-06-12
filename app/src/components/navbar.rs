@@ -6,7 +6,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
     let (show_dropdown, set_show_dropdown) = create_signal(cx, false);
 
     view! { cx,
-        <header class="inset-x-0 top-0 z-50">
+        <header class="inset-x-0 top-0 z-50 sticky bg-white">
             <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
                 <div class="flex lg:flex-1">
                     <A href="/" class="-m-1.5 p-1.5">
@@ -26,7 +26,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     >
                         <span class="sr-only">"Open main menu"</span>
                         <svg
-                            class="h-6 w-6"
+                            class="h-8 w-8"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1.5"
@@ -42,13 +42,13 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </button>
                 </div>
                 <div class="hidden lg:flex lg:gap-x-12">
-                    <A href="/" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/" class="text-lg font-semibold leading-6 text-gray-900">
                         "Home"
                     </A>
-                    <A href="/market" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/market" class="text-lg font-semibold leading-6 text-gray-900">
                         "Markets"
                     </A>
-                    <A href="/community" class="text-sm font-semibold leading-6 text-gray-900">
+                    <A href="/community" class="text-lg font-semibold leading-6 text-gray-900">
                         "Community"
                     </A>
                 </div>
@@ -76,7 +76,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                         >
                             <span class="sr-only">"Close menu"</span>
                             <svg
-                                class="h-6 w-6"
+                                class="h-8 w-8"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke-width="1.5"
@@ -96,19 +96,19 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                             <div class="space-y-2 py-6">
                                 <A
                                     href="/"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Home"
                                 </A>
                                 <A
                                     href="/market"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Markets"
                                 </A>
                                 <A
                                     href="/community"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                                 >
                                     "Community"
                                 </A>
