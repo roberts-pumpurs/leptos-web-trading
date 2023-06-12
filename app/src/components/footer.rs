@@ -8,172 +8,33 @@ pub fn Footer(cx: Scope) -> impl IntoView {
                 "Footer"
             </h2>
             <div class="mx-auto max-w-7xl px-6 pb-8 pt-16 sm:pt-24 lg:px-8 lg:pt-32">
-                <div class="xl:grid xl:grid-cols-3 xl:gap-8">
-                    <img
-                        class="h-7"
-                        src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-                        alt="Company name"
-                    />
-                    <div class="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-                        <div class="md:grid md:grid-cols-2 md:gap-8">
-                            <div>
-                                <h3 class="text-sm font-semibold leading-6 text-white">
-                                    "Solutions"
-                                </h3>
-                                <ul role="list" class="mt-6 space-y-4">
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Marketing"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Analytics"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Commerce"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Insights"
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="mt-10 md:mt-0">
-                                <h3 class="text-sm font-semibold leading-6 text-white">
-                                    "Support"
-                                </h3>
-                                <ul role="list" class="mt-6 space-y-4">
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Pricing"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Documentation"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Guides"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "API Status"
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="md:grid md:grid-cols-2 md:gap-8">
-                            <div>
-                                <h3 class="text-sm font-semibold leading-6 text-white">
-                                    "Company"
-                                </h3>
-                                <ul role="list" class="mt-6 space-y-4">
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "About"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Blog"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Jobs"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Press"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Partners"
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="mt-10 md:mt-0">
-                                <h3 class="text-sm font-semibold leading-6 text-white">"Legal"</h3>
-                                <ul role="list" class="mt-6 space-y-4">
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Claim"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Privacy"
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="#"
-                                            class="text-sm leading-6 text-gray-300 hover:text-white"
-                                        >
-                                            "Terms"
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+                <div class="flex justify-center">
+                    <ul class="flex space-x-4 mt-6">
+                        <li>
+                            <a
+                                href="/"
+                                class="text-sm leading-6 text-gray-300 hover:text-white"
+                            >
+                                "Home"
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="/market"
+                                class="text-sm leading-6 text-gray-300 hover:text-white"
+                            >
+                                "Markets"
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="/community"
+                                class="text-sm leading-6 text-gray-300 hover:text-white"
+                            >
+                                "Community"
+                            </a>
+                        </li>
+                    </ul>
                 </div>
                 <div class="mt-16 border-t border-white/10 pt-8 sm:mt-20 lg:mt-24 lg:flex lg:items-center lg:justify-between">
                     <div>
