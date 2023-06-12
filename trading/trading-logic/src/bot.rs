@@ -23,7 +23,7 @@ impl BotActor {
             next_placement_order: Order {
                 size: Size(dec!(2.0)),
                 side: Side::Back,
-                tick: Tick(dec!(1.51)),
+                tick: Tick(dec!(1.50)),
             },
             market,
             random,
@@ -51,13 +51,32 @@ impl Actor for BotActor {
 impl Handler<TickDataUpdate> for BotActor {
     type Result = ();
 
-    fn handle(&mut self, msg: TickDataUpdate, _ctx: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: TickDataUpdate, ctx: &mut Context<Self>) -> Self::Result {
         match msg {
             TickDataUpdate::NewLatestMatch(msg) => {
-                self.roll_new_order(msg.tick);
+                if self.random.gen_bool(0.5) {
+                    self.roll_new_order(msg.tick);
+                }
             }
             TickDataUpdate::SetRefresh(_msg) => (),
-            TickDataUpdate::SingleUpdate(_) => (),
+            TickDataUpdate::SingleUpdate(msg) => {
+                if self.random.gen_bool(0.05) {
+                    let (side, size) = if msg.available_backs.0 > msg.available_lays.0 {
+                        let half_size = msg.available_lays.0 / dec!(2.0);
+                        (Side::Back, Size(half_size))
+                    } else {
+                        let half_size = msg.available_backs.0 / dec!(2.0);
+                        (Side::Lay, Size(half_size))
+                    };
+
+                    let msg = PlaceOrder {
+                        request_id: RequestId(nanoid::nanoid!()),
+                        trader: self.trader_id.clone(),
+                        order: Order { side, size, tick: msg.tick},
+                    };
+                    self.market.do_send(msg);
+                }
+            }
         };
     }
 }
