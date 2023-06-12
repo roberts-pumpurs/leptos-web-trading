@@ -7,9 +7,11 @@ module.exports = {
     extend: {
       gap: {
         '10': '7rem',
+        '2': '0.5rem',
       },
       width: {
-        '25': '25rem'
+        '25': '25rem',
+        '52': '16rem',
       }
     },
   },
