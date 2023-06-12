@@ -1,24 +1,31 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
-use crate::common::{Order, RequestId, Size, Tick};
+use crate::common::{Order, Size, Tick};
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ServerMessage {
     TraderTimeAck,
     ConnectionInfo(Latency),
     TickSetWhole(Vec<TickData>),
     TickUpdate(TickData),
-    OrderAccepted(RequestId),
-    OrderRejected(RequestId, String),
+    NewLatestMatch(TickData),
+    OrderStateUpdate(TraderOrders),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TraderOrders {
+    pub unmatched_orders: HashMap<Tick, Order>,
+    pub matched_orders: HashMap<Tick, Order>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct TickData {
-    pub back: Size,
-    pub lay: Size,
+    pub total_matched: Size,
+    pub available_backs: Size,
+    pub available_lays: Size,
     pub tick: Tick,
-    pub matched_liquidity: Size,
-    pub total_liquidity: Size,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]

@@ -13,5 +13,8 @@ module.exports = {
       }
     },
   },
+  corePlugins: {
+    overflowY: true,
+  },
   plugins: [require('@tailwindcss/forms')],
 };

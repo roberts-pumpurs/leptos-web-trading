@@ -12,7 +12,7 @@ pub struct RequestId(pub String);
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct Tick(pub rust_decimal::Decimal);
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct Size(pub rust_decimal::Decimal);
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
@@ -22,10 +22,19 @@ pub struct Order {
     pub side: Side,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum Side {
     Back,
     Lay,
+}
+
+impl std::fmt::Display for Side {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Side::Back => write!(f, "Back"),
+            Side::Lay => write!(f, "Lay"),
+        }
+    }
 }
 
 impl Tick {

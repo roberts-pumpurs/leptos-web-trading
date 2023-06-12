@@ -9,13 +9,12 @@ use anyhow::anyhow;
 use axum::extract::ws::{self, WebSocket};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
-use rust_decimal_macros::dec;
 use state::WebAppState;
 use tokio::sync::Mutex;
-use trading_logic::market::messages::{RegisterTrader, TickDataUpdate};
+use trading_logic::market::messages::{OrderStateUpdate, RegisterTrader, TickDataUpdate};
 use trading_logic::market::MarketActor;
-use trading_types::common::{Size, TraderId};
-use trading_types::from_server::{Latency, ServerMessage, TraderInfo};
+use trading_types::common::TraderId;
+use trading_types::from_server::{Latency, ServerMessage};
 use trading_types::from_trader::TraderMessage;
 
 pub async fn handle_connection(
@@ -51,11 +50,6 @@ pub async fn handle_connection(
                 market,
                 hb: Instant::now(),
                 last_trader_time_ms: chrono::Utc::now().timestamp_millis() as u64,
-                last_trader_info: TraderInfo {
-                    exposure: Size(dec!(0.0)),
-                    balance: Size(dec!(10000.0)),
-                    orders: vec![],
-                },
             }
         });
     }
@@ -73,8 +67,6 @@ struct WsActor {
     /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
     /// otherwise we drop connection.
     hb: Instant,
-
-    last_trader_info: TraderInfo,
 }
 
 impl WsActor {
@@ -128,8 +120,9 @@ impl Actor for WsActor {
     fn started(&mut self, ctx: &mut Self::Context) {
         tracing::info!(agent =? self.trader_id, "ws actor started");
         // register client to the market
-        let recp = ctx.address().recipient::<TickDataUpdate>();
-        self.market.do_send(RegisterTrader(self.trader_id.clone(), recp));
+        let recp = ctx.address().recipient();
+        let recp2 = ctx.address().recipient();
+        self.market.do_send(RegisterTrader(self.trader_id.clone(), recp, recp2));
         self.send_server_message(ServerMessage::TraderTimeAck, ctx);
 
         // we'll start heartbeat process on session start.
@@ -145,8 +138,9 @@ impl StreamHandler<Result<WsMsg, anyhow::Error>> for WsActor {
     fn handle(&mut self, item: Result<WsMsg, anyhow::Error>, ctx: &mut Context<WsActor>) {
         if let Ok(WsMsg(Ok(msg))) = item {
             match msg {
-                TraderMessage::PlaceOrder(_req_id, order) => {
+                TraderMessage::PlaceOrder(req_id, order) => {
                     self.market.do_send(trading_logic::market::messages::PlaceOrder {
+                        request_id: req_id,
                         trader: self.trader_id.clone(),
                         order,
                     });
@@ -174,7 +168,22 @@ impl Handler<TickDataUpdate> for WsActor {
         let msg = match msg {
             TickDataUpdate::SetRefresh(msg) => ServerMessage::TickSetWhole(msg),
             TickDataUpdate::SingleUpdate(msg) => ServerMessage::TickUpdate(msg),
+            TickDataUpdate::NewLatestMatch(msg) => ServerMessage::NewLatestMatch(msg),
         };
         self.send_server_message(msg, ctx);
+    }
+}
+impl Handler<OrderStateUpdate> for WsActor {
+    type Result = ();
+
+    fn handle(&mut self, msg: OrderStateUpdate, ctx: &mut Context<Self>) -> Self::Result {
+        tracing::info!(msg = ?msg, "OrderStateUpdate");
+        self.send_server_message(
+            ServerMessage::OrderStateUpdate(trading_types::from_server::TraderOrders {
+                matched_orders: msg.matched_orders,
+                unmatched_orders: msg.open_orders,
+            }),
+            ctx,
+        );
     }
 }
