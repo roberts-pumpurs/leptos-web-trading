@@ -85,7 +85,7 @@ pub fn Footer(cx: Scope) -> impl IntoView {
                                 </a>
                             </li>
                         </ul>
-                        <p class="text-xs leading-5 text-gray-400 md:order-1 mt-0">"&copy; 2023 Roberts Ivanovs. All rights reserved."</p>
+                        <p class="text-xs leading-5 text-gray-400 md:order-1 mt-0">"© 2023 Roberts Ivanovs. All rights reserved."</p>
                     </div>
                 </div>
             </div>
