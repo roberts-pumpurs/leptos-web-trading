@@ -11,7 +11,10 @@ pub fn Footer(cx: Scope) -> impl IntoView {
                 <div class="flex justify-center pt-8">
                     <div class="flex flex-col items-center">
                         <div class="flex">
-                            <a href="https://github.com/roberts-ivanovs/leptos-web-trading" class="text-gray-500 hover:text-gray-400">
+                            <a
+                                href="https://github.com/roberts-ivanovs/leptos-web-trading"
+                                class="text-gray-500 hover:text-gray-400"
+                            >
                                 <span class="sr-only">"GitHub"</span>
                                 <svg
                                     class="h-20"
@@ -53,7 +56,9 @@ pub fn Footer(cx: Scope) -> impl IntoView {
                                 </a>
                             </li>
                         </ul>
-                        <p class="text-xs leading-5 text-gray-400 md:order-1 mt-0">"© 2023 Roberts Ivanovs. All rights reserved."</p>
+                        <p class="text-xs leading-5 text-gray-400 md:order-1 mt-0">
+                            "© 2023 Roberts Ivanovs. All rights reserved."
+                        </p>
                     </div>
                 </div>
             </div>
