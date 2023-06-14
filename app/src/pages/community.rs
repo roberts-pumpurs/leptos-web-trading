@@ -15,7 +15,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                             "About the Speaker"
                         </h2>
                         <p class="mt-6 text-lg leading-8 text-gray-600">
-                            "Roberts Ivanovs is a Rust Software Engineer. He has worked in the web3 space for the last 2 years, working on various projects during the NFT craze, marketplaces, DeFi. He has extensive experience using Rust for backend work and real-time system development, the IoT industry, web development, and Solidity/dApp development."
+                            "Roberts Ivanovs is a Rust Software Engineer. He has worked in the web3 space for the last 2 years, working on various projects during the NFT craze, marketplaces, DeFi."
                         </p>
                     </div>
                     <ul
@@ -36,7 +36,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                     "SIA ProvenCraft — Co-Founder / CEO"
                                 </p>
                                 <p class="mt-6 text-base leading-7 text-gray-600">
-                                    "In betting, the only bet you're sure to win is the one you don't place."
+                                    "He has extensive experience using Rust for backend work and real-time system development, the IoT industry, web development, and Solidity/dApp development."
                                 </p>
                                 <ul role="list" class="mt-6 flex gap-x-6">
                                     <li>
@@ -128,7 +128,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                 </h3>
                                 <p class="text-base leading-7 text-gray-600">"@robertsivanovs"</p>
                                 <p class="mt-6 text-base leading-7 text-gray-600">
-                                    "Scan the QR Code to add me on telegram !"
+                                    "Scan the QR Code to add me on telegram!"
                                 </p>
                                 <ul role="list" class="mt-6 flex gap-x-6">
                                     <li>
