@@ -40,7 +40,6 @@ impl BotActor {
 const MAX_INTERVAL_BETWEEN_PLACEMENTS: Duration = Duration::from_secs(1);
 const MIN_INTERVAL_BETWEEN_PLACEMENTS: Duration = Duration::from_millis(250);
 
-
 impl Actor for BotActor {
     type Context = Context<Self>;
 
@@ -111,7 +110,7 @@ impl Handler<PlaceNextBet> for BotActor {
     fn handle(&mut self, _msg: PlaceNextBet, ctx: &mut Context<Self>) -> Self::Result {
         // early return if we placed within the range of MIN interval
         if self.last_placed_bet_time.elapsed() < MIN_INTERVAL_BETWEEN_PLACEMENTS {
-            return;
+            return
         }
 
         self.last_placed_bet_time = Instant::now();
