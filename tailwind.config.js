@@ -18,6 +18,9 @@ module.exports = {
       colors: {
         'lapse': '#f3f3f3',
       },
+      screens: {
+        'vsm': '360px',
+      }
     },
   },
   corePlugins: {

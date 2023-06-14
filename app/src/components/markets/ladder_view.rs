@@ -242,8 +242,10 @@ fn StatsComponent(
 ) -> impl IntoView {
     view! { cx,
         <div>
-            <h3 class="text-base font-semibold leading-6 text-gray-700">"Stats"</h3>
-            <dl class="mt-5 grid grid-cols-3 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
+            <h3 class="text-base font-semibold leading-6 text-gray-700 mt-8 lg:mt-0 flex justify-center lg:justify-start">
+                "Stats"
+            </h3>
+            <dl class="mt-6 grid grid-cols-3 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
                 <div class="px-4 py-5 sm:p-6">
                     <dt class="text-base font-normal text-gray-700">"WS Latency"</dt>
                     <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
@@ -301,15 +303,15 @@ fn StatsComponent(
 fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl IntoView {
     view! { cx,
         <div>
-            <div class="sm:flex mt-[3rem] sm:items-center">
-                <div class="sm:flex-auto">
-                    <h1 class="text-base font-semibold leading-6 text-gray-700">
+            <div class="flex mt-[3.5rem] items-center justify-center lg:justify-start">
+                <div class="flex-col">
+                    <h1 class="text-base font-semibold leading-6 text-gray-700 flex justify-center lg:justify-start">
                         "Unmatched bets"
                     </h1>
                     <p class="mt-2 text-sm text-gray-700">"A list of all unmatched orders"</p>
                 </div>
             </div>
-            <div class="-mx-4 mt-4 sm:-mx-0">
+            <div class="mt-6">
                 <table class="min-w-full divide-y divide-gray-300">
                     <thead>
                         <tr>
@@ -372,15 +374,11 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                                 });
                                 res.into_iter().map(|(x, _)| x).collect::<Vec<_>>()
                             } else {
-                                vec![(
-                                    view! { cx,
-                                        <tr>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
-                                                {"No data to display".to_string()}
-                                            </td>
-                                        </tr>
-                                    }
-                                )]
+                                vec![
+                                    (view! { cx, < tr > < td class =
+                                    "whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell" > {
+                                    "No data to display".to_string() } </ td > </ tr > })
+                                ]
                             }
                         }}
                     </tbody>
@@ -398,9 +396,9 @@ fn LadderTable(
 ) -> impl IntoView {
     view! { cx,
         <div>
-            <div class="sm:flex mt-10 sm:items-center">
-                <div class="sm:flex-auto">
-                    <h1 class="text-base font-semibold leading-6 text-gray-700">
+            <div class="flex mt-[3.5rem] items-center justify-center lg:justify-start">
+                <div class="flex-col">
+                    <h1 class="text-base font-semibold leading-6 text-gray-700 flex justify-center lg:justify-start">
                         "Ladder view"
                     </h1>
                     <p class="mt-2 text-sm text-gray-700">"A view of the market state"</p>
@@ -554,7 +552,7 @@ fn TickRow(
                     <input type="number" class="w-full" node_ref=input_element_lay/>
                 </form>
             </td>
-            <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
+            <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200 flex">
                 {move || {
                     let data = data.tick_data.get();
                     let matched_liquidity = data.total_matched.0;

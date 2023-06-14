@@ -81,7 +81,11 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
                                 </dd>
                             </div>
                             <div class="flex flex-col mt-6">
-                                <img src="/Tailwind_Logo.svg" alt="Tailwind-Logo" class="w-26 sm:w-25"/>
+                                <img
+                                    src="/Tailwind_Logo.svg"
+                                    alt="Tailwind-Logo"
+                                    class="w-26 sm:w-25"
+                                />
                                 <dt class="flex mt-10 sm:mt-[4rem] items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-700">
                                     <svg
                                         class="h-7 w-7 flex-none text-indigo-600"

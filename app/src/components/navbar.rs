@@ -11,7 +11,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                 <div class="flex lg:flex-1">
                     <A href="/" class="-m-1.5 p-1.5">
                         <span class="sr-only">"Your Company"</span>
-                        <img class="h-12 w-auto" src="/Company_Logo.png" alt=""/>
+                        <img class="h-10 w-auto" src="/Company_Logo.png" alt=""/>
                     </A>
                 </div>
                 <div class=move || if show_dropdown.get() { "hidden lg:hidden" } else { "flex lg:hidden" }>
@@ -59,7 +59,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     <div class="flex items-center justify-between">
                         <A href="#" class="-m-1.5 p-1.5">
                             <span class="sr-only">"Your Company"</span>
-                            <img class="h-12 w-auto" src="/Company_Logo.png" alt=""/>
+                            <img class="h-10 w-auto" src="/Company_Logo.png" alt=""/>
                         </A>
                         <button
                             type="button"
