@@ -242,10 +242,10 @@ fn StatsComponent(
 ) -> impl IntoView {
     view! { cx,
         <div>
-            <h3 class="text-base font-semibold leading-6 text-gray-900">"Stats"</h3>
+            <h3 class="text-base font-semibold leading-6 text-gray-700">"Stats"</h3>
             <dl class="mt-5 grid grid-cols-3 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
                 <div class="px-4 py-5 sm:p-6">
-                    <dt class="text-base font-normal text-gray-900">"WS Latency"</dt>
+                    <dt class="text-base font-normal text-gray-700">"WS Latency"</dt>
                     <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
                         <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
                             {move || {
@@ -261,7 +261,7 @@ fn StatsComponent(
                     </dd>
                 </div>
                 <div class="px-4 py-5 sm:p-6">
-                    <dt class="text-base font-normal text-gray-900">"Matched backs"</dt>
+                    <dt class="text-base font-normal text-gray-700">"Matched backs"</dt>
                     <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
                         <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
                             {move || {
@@ -277,7 +277,7 @@ fn StatsComponent(
                     </dd>
                 </div>
                 <div class="px-4 py-5 sm:p-6">
-                    <dt class="text-base font-normal text-gray-900">"Matched lays"</dt>
+                    <dt class="text-base font-normal text-gray-700">"Matched lays"</dt>
                     <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
                         <div class="flex items-baseline text-2xl font-semibold text-indigo-600">
                             {move || {
@@ -300,34 +300,34 @@ fn StatsComponent(
 #[component]
 fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl IntoView {
     view! { cx,
-        <div class="px-4 sm:px-6 lg:px-8">
-            <div class="sm:flex sm:items-center">
+        <div>
+            <div class="sm:flex mt-[3rem] sm:items-center">
                 <div class="sm:flex-auto">
-                    <h1 class="text-base font-semibold leading-6 text-gray-900">
+                    <h1 class="text-base font-semibold leading-6 text-gray-700">
                         "Unmatched bets"
                     </h1>
                     <p class="mt-2 text-sm text-gray-700">"A list of all unmatched orders"</p>
                 </div>
             </div>
-            <div class="-mx-4 mt-8 sm:-mx-0">
+            <div class="-mx-4 mt-4 sm:-mx-0">
                 <table class="min-w-full divide-y divide-gray-300">
                     <thead>
                         <tr>
                             <th
                                 scope="col"
-                                class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell"
+                                class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-700 sm:table-cell"
                             >
                                 "Tick"
                             </th>
                             <th
                                 scope="col"
-                                class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0"
+                                class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-700 sm:pl-0"
                             >
                                 "Side"
                             </th>
                             <th
                                 scope="col"
-                                class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell"
+                                class=" px-3 py-3.5 text-left text-sm font-semibold text-gray-700 lg:table-cell"
                             >
                                 "Size"
                             </th>
@@ -335,6 +335,7 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
                         {move || {
+                            log!("hello");
                             let mut res = trader_orders()
                                 .unmatched_orders
                                 .values()
@@ -345,7 +346,7 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
                                                     {order.tick.0.to_string()}
                                                 </td>
-                                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-700 sm:pl-0">
                                                     {order.side.to_string()}
                                                 </td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
@@ -357,18 +358,30 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                                     )
                                 })
                                 .collect::<Vec<_>>();
-                            res.sort_by(|(_, order1), (_, order2)| {
-                                order1
-                                    .tick
-                                    .cmp(&order2.tick)
-                                    .then_with(|| {
-                                        order1
-                                            .side
-                                            .cmp(&order2.side)
-                                            .then_with(|| { order1.size.cmp(&order2.size) })
-                                    })
-                            });
-                            res.into_iter().map(|(x, _)| x).collect::<Vec<_>>()
+                            if !res.is_empty() {
+                                res.sort_by(|(_, order1), (_, order2)| {
+                                    order1
+                                        .tick
+                                        .cmp(&order2.tick)
+                                        .then_with(|| {
+                                            order1
+                                                .side
+                                                .cmp(&order2.side)
+                                                .then_with(|| { order1.size.cmp(&order2.size) })
+                                        })
+                                });
+                                res.into_iter().map(|(x, _)| x).collect::<Vec<_>>()
+                            } else {
+                                vec![(
+                                    view! { cx,
+                                        <tr>
+                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                                                {"No data to display".to_string()}
+                                            </td>
+                                        </tr>
+                                    }
+                                )]
+                            }
                         }}
                     </tbody>
                 </table>
@@ -384,65 +397,75 @@ fn LadderTable(
     ws_client_sender: Memo<Option<SenderWrapper>>,
 ) -> impl IntoView {
     view! { cx,
-        <div class="px-4 sm:px-6 lg:px-8">
-            <div class="mt-8 flow-root">
-                <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <table class="table-fixed w-full divide-y divide-gray-300">
-                        <thead>
-                            <tr class="divide-x divide-gray-200">
-                                <th
-                                    scope="col"
-                                    class="w-1/6 whitespace-nowrap py-3.5 pl-4 pr-3 text-center text-sm font-semibold text-gray-900 sm:pl-0"
-                                >
-                                    "Lapse"
-                                </th>
-                                <th
-                                    scope="col"
-                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
-                                >
-                                    "Back"
-                                </th>
-                                <th
-                                    scope="col"
-                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
-                                >
-                                    "Odds"
-                                </th>
-                                <th
-                                    scope="col"
-                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
-                                >
-                                    "Lay"
-                                </th>
-                                <th
-                                    scope="col"
-                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold text-gray-900"
-                                >
-                                    "Lapse"
-                                </th>
-                                <th
-                                    scope="col"
-                                    class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500"
-                                >
-                                    "Liquidity"
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-center divide-y divide-gray-200 bg-white ">
-                            {move || {
-                                view! { cx,
-                                    <For
-                                        each=ladder
-                                        key=|val| { val.id }
-                                        view=move |cx, data| {
-                                            view! { cx, <TickRow data=data ws_client_sender=ws_client_sender/> }
-                                        }
-                                    />
-                                }
-                                    .into_view(cx)
-                            }}
-                        </tbody>
-                    </table>
+        <div>
+            <div class="sm:flex mt-10 sm:items-center">
+                <div class="sm:flex-auto">
+                    <h1 class="text-base font-semibold leading-6 text-gray-700">
+                        "Ladder view"
+                    </h1>
+                    <p class="mt-2 text-sm text-gray-700">"A view of the market state"</p>
+                </div>
+            </div>
+            <div class="px-4 sm:px-6 lg:px-8">
+                <div class="mt-8 flow-root">
+                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                        <table class="table-fixed w-full divide-y divide-gray-300">
+                            <thead>
+                                <tr class="divide-x divide-gray-200">
+                                    <th
+                                        scope="col"
+                                        class="w-1/6 whitespace-nowrap py-3.5 pl-4 pr-3 text-center text-sm font-semibold bg-lapse text-gray-600 sm:pl-0"
+                                    >
+                                        "Lapse"
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                    >
+                                        "Back"
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                    >
+                                        "Odds"
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                    >
+                                        "Lay"
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-lapse text-gray-600"
+                                    >
+                                        "Lapse"
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500"
+                                    >
+                                        "Liquidity"
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center divide-y divide-gray-200 bg-white ">
+                                {move || {
+                                    view! { cx,
+                                        <For
+                                            each=ladder
+                                            key=|val| { val.id }
+                                            view=move |cx, data| {
+                                                view! { cx, <TickRow data=data ws_client_sender=ws_client_sender/> }
+                                            }
+                                        />
+                                    }
+                                        .into_view(cx)
+                                }}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

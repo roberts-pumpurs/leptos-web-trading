@@ -11,7 +11,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
             <div class="bg-white py-24 sm:py-32">
                 <div class="mx-auto max-w-7xl px-6 lg:px-8">
                     <div class="mx-auto max-w-2xl lg:text-center">
-                        <p class="mt-2 text-3xl font-bold text-gray-900 sm:text-4xl">
+                        <p class="mt-2 text-3xl font-bold text-gray-700 sm:text-4xl">
                             "Trading Platform built using..."
                         </p>
                     </div>
@@ -19,7 +19,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
                         <dl class="grid max-w-xl grid-cols-1 gap-x-10 gap-y-16 lg:max-w-none lg:grid-cols-3">
                             <div class="flex flex-col">
                                 <img src="/Leptos_Logo.svg" alt="Leptos-Logo" class="w-26 sm:w-24"/>
-                                <dt class="flex mt-8 sm:mt-5 items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-900">
+                                <dt class="flex mt-8 sm:mt-5 items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-700">
                                     <svg
                                         class="h-7 w-7 flex-none text-indigo-600"
                                         fill="currentColor"
@@ -51,7 +51,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
                             </div>
                             <div class="flex flex-col">
                                 <img src="/Ferris.svg" alt="Rust-Logo" class="w-26"/>
-                                <dt class="flex mt-2 sm:mt-10 items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-900">
+                                <dt class="flex mt-2 sm:mt-10 items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-700">
                                     <svg
                                         class="h-7 w-7 flex-none text-indigo-600"
                                         fill="currentColor"
@@ -82,7 +82,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
                             </div>
                             <div class="flex flex-col mt-6">
                                 <img src="/Tailwind_Logo.svg" alt="Tailwind-Logo" class="w-26 sm:w-25"/>
-                                <dt class="flex mt-10 sm:mt-[4rem] items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-900">
+                                <dt class="flex mt-10 sm:mt-[4rem] items-center gap-x-3 text-2xl font-semibold leading-7 text-gray-700">
                                     <svg
                                         class="h-7 w-7 flex-none text-indigo-600"
                                         fill="currentColor"

@@ -36,7 +36,7 @@ pub fn AppRouter(cx: Scope) -> impl IntoView {
                     <Route
                         path=""
                         view=|cx| {
-                            view! { cx, <div>"Select a market to start trading!"</div> }
+                            view! { cx, <div class="text-lg text-gray-700 flex justify-center mt-[1.9rem] font-medium">"Select a market to start trading!"</div> }
                         }
                     />
                 </Route>

@@ -11,7 +11,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
             <div class="bg-white py-24 md:py-32">
                 <div class="mx-auto grid max-w-7xl grid-cols-1 gap-x-8 gap-y-20 px-6 lg:px-8 xl:grid-cols-5">
                     <div class="max-w-2xl xl:col-span-2">
-                        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                        <h2 class="text-3xl font-bold tracking-tight text-gray-700 sm:text-4xl">
                             "About the Speaker"
                         </h2>
                         <p class="mt-6 text-lg leading-8 text-gray-600">
@@ -29,7 +29,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                 alt=""
                             />
                             <div class="max-w-xl mt-6 flex-auto">
-                                <h3 class="text-xl font-semibold leading-8 tracking-tight text-gray-900">
+                                <h3 class="text-xl font-semibold leading-8 tracking-tight text-gray-700">
                                     "Roberts Ivanovs"
                                 </h3>
                                 <p class="text-base leading-7 text-gray-600">
@@ -85,7 +85,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                 alt=""
                             />
                             <div class="max-w-xl mt-6 sm:mt-0 flex-auto">
-                                <h3 class="text-xl font-semibold leading-8 tracking-tight text-gray-900">
+                                <h3 class="text-xl font-semibold leading-8 tracking-tight text-gray-700">
                                     "ProvenCraft Community"
                                 </h3>
                                 <p class="text-base leading-7 text-gray-600">"Tech Community"</p>
@@ -123,7 +123,7 @@ pub fn CommunityPage(cx: Scope) -> impl IntoView {
                                 alt=""
                             />
                             <div class="max-w-xl mt-6 flex-auto">
-                                <h3 class="text-xl font-semibold leading-8 tracking-tight text-gray-900">
+                                <h3 class="text-xl font-semibold leading-8 tracking-tight text-gray-700">
                                     "Personal Contact"
                                 </h3>
                                 <p class="text-base leading-7 text-gray-600">"@robertsivanovs"</p>
