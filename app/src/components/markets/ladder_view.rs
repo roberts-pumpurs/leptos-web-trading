@@ -337,7 +337,6 @@ fn OrderInformation(cx: Scope, trader_orders: ReadSignal<TraderOrders>) -> impl 
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
                         {move || {
-                            log!("hello");
                             let mut res = trader_orders()
                                 .unmatched_orders
                                 .values()
@@ -552,7 +551,7 @@ fn TickRow(
                     <input type="number" class="w-full" node_ref=input_element_lay/>
                 </form>
             </td>
-            <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200 flex">
+            <td class="w-1/6 text-center whitespace-nowrap text-sm text-gray-500 bg-slate-200">
                 {move || {
                     let data = data.tick_data.get();
                     let matched_liquidity = data.total_matched.0;
