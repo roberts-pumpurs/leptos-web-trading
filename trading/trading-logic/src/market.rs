@@ -75,7 +75,7 @@ impl Actor for MarketActor {
                 val.clear();
             }
 
-            let new_balance = Tick(dec!(1.51));
+            let new_balance = Tick(dec!(1.50));
             if let Some(obr) = act.order_book.get_mut(&new_balance) {
                 let new_balance = compress_order_book_range(obr);
                 act.update_listeners(messages::TickDataUpdate::NewLatestMatch(new_balance));
