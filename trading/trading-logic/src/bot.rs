@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Message};
 use rand::Rng;
@@ -14,6 +14,7 @@ pub struct BotActor {
     next_placement_order: Order,
     random: rand::rngs::ThreadRng,
     spawn_handle: Option<actix::SpawnHandle>,
+    last_placed_bet_time: std::time::Instant,
 }
 
 impl BotActor {
@@ -29,11 +30,16 @@ impl BotActor {
             spawn_handle: None,
             market,
             random,
+            last_placed_bet_time: Instant::now(),
         };
         instance.roll_new_order(instance.next_placement_order.tick);
         instance
     }
 }
+
+const MAX_INTERVAL_BETWEEN_PLACEMENTS: Duration = Duration::from_secs(1);
+const MIN_INTERVAL_BETWEEN_PLACEMENTS: Duration = Duration::from_millis(250);
+
 
 impl Actor for BotActor {
     type Context = Context<Self>;
@@ -47,6 +53,10 @@ impl Actor for BotActor {
 
         let next_placement_in = Duration::from_millis(self.random.gen_range(500..2000));
         ctx.notify_later(PlaceNextBet, next_placement_in);
+
+        ctx.run_interval(MAX_INTERVAL_BETWEEN_PLACEMENTS, |_act, ctx| {
+            ctx.notify(PlaceNextBet);
+        });
     }
 }
 
@@ -99,6 +109,12 @@ impl Handler<PlaceNextBet> for BotActor {
     type Result = ();
 
     fn handle(&mut self, _msg: PlaceNextBet, ctx: &mut Context<Self>) -> Self::Result {
+        // early return if we placed within the range of MIN interval
+        if self.last_placed_bet_time.elapsed() < MIN_INTERVAL_BETWEEN_PLACEMENTS {
+            return;
+        }
+
+        self.last_placed_bet_time = Instant::now();
         let msg = PlaceOrder {
             request_id: RequestId(nanoid::nanoid!()),
             trader: self.trader_id.clone(),
@@ -137,7 +153,7 @@ impl BotActor {
         let next_placement_tick = prev_balance
             .0
             .checked_add(rust_decimal::Decimal::new(next_placement_tick_diff, 2))
-            .unwrap();
+            .unwrap_or(dec!(1.50));
         Tick(next_placement_tick)
     }
 }
