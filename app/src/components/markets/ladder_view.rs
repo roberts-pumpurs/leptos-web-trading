@@ -411,37 +411,37 @@ fn LadderTable(
                                 <tr class="divide-x divide-gray-200">
                                     <th
                                         scope="col"
-                                        class="w-1/6 whitespace-nowrap py-3.5 pl-4 pr-3 text-center text-sm font-semibold bg-lapse text-gray-600 sm:pl-0"
+                                        class="w-1/6 whitespace-nowrap sm:px-2 py-3.5 text-center text-sm font-semibold bg-lapse text-gray-600 sm:pl-0"
                                     >
                                         "Lapse"
                                     </th>
                                     <th
                                         scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                        class="w-1/6 whitespace-nowrap sm:px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
                                     >
                                         "Back"
                                     </th>
                                     <th
                                         scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                        class="w-1/6 whitespace-nowrap sm:px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
                                     >
                                         "Odds"
                                     </th>
                                     <th
                                         scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
+                                        class="w-1/6 whitespace-nowrap sm:px-2 py-3.5 text-center text-sm font-semibold  bg-gray-200 text-gray-500"
                                     >
                                         "Lay"
                                     </th>
                                     <th
                                         scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-lapse text-gray-600"
+                                        class="w-1/6 whitespace-nowrap sm:px-2 py-3.5 text-center text-sm font-semibold bg-lapse text-gray-600"
                                     >
                                         "Lapse"
                                     </th>
                                     <th
                                         scope="col"
-                                        class="w-1/6 whitespace-nowrap px-2 py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500"
+                                        class="w-1/6 sm:px-2 py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500 break-words"
                                     >
                                         "Liquidity"
                                     </th>
@@ -559,14 +559,14 @@ fn TickRow(
                         + data.available_lays.0;
                     if total_liquidity == dec!(0) {
                         return view! { cx,
-                                <progress value="0" max="100">
+                                <progress value="0" max="100" class="w-full">
                                     "0%"
                                 </progress>
                             };
                     }
                     let percentage_matched = matched_liquidity / total_liquidity * dec!(100);
                     view! { cx,
-                        <progress value=matched_liquidity.to_string() max=total_liquidity.to_string()>
+                        <progress value=matched_liquidity.to_string() max=total_liquidity.to_string() class="w-full">
                             {percentage_matched.to_string()}
                             "%"
                         </progress>
