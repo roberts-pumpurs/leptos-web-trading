@@ -11,7 +11,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                 <div class="flex lg:flex-1">
                     <A href="/" class="-m-1.5 p-1.5">
                         <span class="sr-only">"Your Company"</span>
-                        <img class="h-12 w-auto" src="/Company_Logo.png" alt=""/>
+                        <img class="h-10 w-auto" src="/Company_Logo.png" alt=""/>
                     </A>
                 </div>
                 <div class=move || if show_dropdown.get() { "hidden lg:hidden" } else { "flex lg:hidden" }>
@@ -38,13 +38,13 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     </button>
                 </div>
                 <div class="hidden lg:flex lg:gap-x-12">
-                    <A href="/" class="text-lg font-semibold leading-6 text-gray-900">
+                    <A href="/" class="text-lg font-semibold leading-6 text-gray-700">
                         "Home"
                     </A>
-                    <A href="/market" class="text-lg font-semibold leading-6 text-gray-900">
+                    <A href="/market" class="text-lg font-semibold leading-6 text-gray-700">
                         "Markets"
                     </A>
-                    <A href="/community" class="text-lg font-semibold leading-6 text-gray-900">
+                    <A href="/community" class="text-lg font-semibold leading-6 text-gray-700">
                         "Community"
                     </A>
                 </div>
@@ -59,7 +59,7 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                     <div class="flex items-center justify-between">
                         <A href="#" class="-m-1.5 p-1.5">
                             <span class="sr-only">"Your Company"</span>
-                            <img class="h-12 w-auto" src="/Company_Logo.png" alt=""/>
+                            <img class="h-10 w-auto" src="/Company_Logo.png" alt=""/>
                         </A>
                         <button
                             type="button"
@@ -88,19 +88,19 @@ pub fn Navbar(cx: Scope) -> impl IntoView {
                             <div class="space-y-2 py-6">
                                 <A
                                     href="/"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-700 hover:bg-gray-50"
                                 >
                                     "Home"
                                 </A>
                                 <A
                                     href="/market"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-700 hover:bg-gray-50"
                                 >
                                     "Markets"
                                 </A>
                                 <A
                                     href="/community"
-                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                                    class="-mx-3 block rounded-lg px-3 py-2 text-xl font-semibold leading-7 text-gray-700 hover:bg-gray-50"
                                 >
                                     "Community"
                                 </A>

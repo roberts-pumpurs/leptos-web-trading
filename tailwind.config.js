@@ -14,6 +14,12 @@ module.exports = {
         '25': '18rem',
         '26': '21rem',
         '52': '16rem',
+      },
+      colors: {
+        'lapse': '#f3f3f3',
+      },
+      screens: {
+        'vsm': '360px',
       }
     },
   },
